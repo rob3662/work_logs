@@ -115,7 +115,7 @@ def register():
             username=username,
             email=email,
             password=password,
-            is_admin=False,
+            is_admin=True,
             email_verified=False,
         )
 
@@ -235,7 +235,22 @@ def index():
 @main_bp.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html")
+    recent_sessions = []
+    try:
+        recent_sessions = execute_query(
+            """
+            SELECT id, project, work_date, start_time, end_time, hours_worked, income, expenses
+            FROM work_sessions
+            WHERE tenant_id = %s
+            ORDER BY work_date DESC, id DESC
+            LIMIT 8
+            """,
+            (current_user.tenant_id,),
+            fetch_all=True,
+        ) or []
+    except Exception as e:
+        logger.warning("dashboard work_sessions: %s", e)
+    return render_template("dashboard.html", recent_sessions=recent_sessions)
 
 
 @main_bp.route("/robots.txt")
@@ -339,7 +354,7 @@ def stripe_webhook():
 @admin_bp.route("/")
 @login_required
 def admin_dashboard():
-    if not current_user.is_admin:
+    if not getattr(current_user, "is_site_admin", False):
         flash("Access denied.", "error")
         return redirect(url_for("main.dashboard"))
     stats = {}

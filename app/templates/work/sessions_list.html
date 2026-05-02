@@ -1,0 +1,47 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Work sessions — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="mb-0">Work sessions</h1>
+  <a class="btn btn-primary" href="{{ url_for('work.session_new') }}">Start session</a>
+</div>
+{% if sessions %}
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Project</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Hours</th>
+        <th>Income</th>
+        <th>Expenses</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>{{ s.work_date }}</td>
+        <td>{{ s.project }}</td>
+        <td>{% if s.start_time %}{{ (s.start_time|string)[:5] }}{% endif %}</td>
+        <td>{% if s.end_time %}{{ (s.end_time|string)[:5] }}{% else %}<span class="badge text-bg-warning">Open</span>{% endif %}</td>
+        <td>{% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</td>
+        <td>{% if s.income is not none %}{{ s.income }}{% else %}—{% endif %}</td>
+        <td>{% if s.expenses is not none %}{{ s.expenses }}{% else %}—{% endif %}</td>
+        <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('work.session_detail', session_id=s.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">No sessions yet. <a href="{{ url_for('work.session_new') }}">Start your first session</a>.</p>
+{% endif %}
+{% endblock %}

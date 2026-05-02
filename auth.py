@@ -48,6 +48,7 @@ class User(UserMixin):
         self.personal_email = user_data.get("personal_email")
         self.password_hash = user_data.get("password_hash")
         self.is_admin = user_data.get("is_admin", False)
+        self.is_site_admin = user_data.get("is_site_admin", False)
         self.email_verified = user_data.get("email_verified", False)
         self.personal_email_verified = user_data.get("personal_email_verified", False)
         self.created_at = user_data.get("created_at")
@@ -79,43 +80,59 @@ class UserManager:
             if not password_valid:
                 return False, password_error
 
-            tenant_id = _default_tenant_id()
             email_norm = email.lower().strip()
-            dup = execute_query(
+            dup_email = execute_query(
                 """
-                SELECT id FROM users
-                WHERE tenant_id = %s AND LOWER(TRIM(email)) = %s
-                LIMIT 1
+                SELECT id FROM users WHERE LOWER(TRIM(email)) = %s LIMIT 1
                 """,
-                (tenant_id, email_norm),
+                (email_norm,),
                 fetch_one=True,
             )
-            if dup:
+            if dup_email:
                 return False, "An account with this email already exists."
 
-            if UserManager.get_user_by_username(username):
+            dup_username = execute_query(
+                """
+                SELECT id FROM users WHERE LOWER(TRIM(username)) = %s LIMIT 1
+                """,
+                (username.strip().lower(),),
+                fetch_one=True,
+            )
+            if dup_username:
                 return False, "Username already taken"
 
             max_users = (os.environ.get("MAX_REGISTERED_USERS") or "").strip()
             if max_users.isdigit():
                 cap = int(max_users)
-                cnt = execute_query(
-                    "SELECT COUNT(*) AS c FROM users WHERE tenant_id = %s",
-                    (tenant_id,),
-                    fetch_one=True,
-                )
+                cnt = execute_query("SELECT COUNT(*) AS c FROM users", fetch_one=True)
                 if cnt and int(cnt.get("c") or 0) >= cap:
                     return False, "Registration is closed (user limit reached)."
+
+            tenant_row = execute_query(
+                """
+                INSERT INTO tenants (name, updated_at)
+                VALUES (%s, %s)
+                RETURNING id
+                """,
+                (f"{username.strip()}'s workspace", datetime.utcnow()),
+                fetch_one=True,
+            )
+            if not tenant_row:
+                return False, "Failed to create organization"
+            tenant_id = int(tenant_row["id"])
 
             verification_token = secrets.token_urlsafe(32) if not email_verified else None
             password_hash = generate_password_hash(password)
 
+            # is_admin = tenant-level admin (owner or delegate); is_site_admin = global /admin only
+            site_admin_flag = False
+
             result = execute_query(
                 """
                 INSERT INTO users (
-                    tenant_id, username, email, password_hash, is_admin, email_verified,
-                    verification_token, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    tenant_id, username, email, password_hash, is_admin, is_site_admin,
+                    email_verified, verification_token, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -124,6 +141,7 @@ class UserManager:
                     email_norm,
                     password_hash,
                     is_admin,
+                    site_admin_flag,
                     email_verified,
                     verification_token,
                     datetime.utcnow(),

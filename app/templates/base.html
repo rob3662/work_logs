@@ -28,7 +28,8 @@ Unauthorized use, modification, or distribution is strictly prohibited.
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
                 {% if current_user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                {% if current_user.is_admin %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('work.sessions_list') }}">Work log</a></li>
+                {% if current_user.is_site_admin %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Admin</a></li>
                 {% endif %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a></li>

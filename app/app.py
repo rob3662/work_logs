@@ -93,10 +93,13 @@ def create_app():
     
     # Register blueprints
     from routes import auth_bp, main_bp, api_bp, admin_bp
+    from work_logs_routes import work_bp
+
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp)
+    app.register_blueprint(work_bp)
 
     @app.route('/favicon.ico')
     def favicon_legacy():

@@ -1,0 +1,84 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Session — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="mb-1">{{ session.project }}</h1>
+    <p class="text-muted mb-0">{{ session.work_date }} · {{ (session.start_time|string)[:5] }}{% if session.end_time %} – {{ (session.end_time|string)[:5] }}{% else %} · <span class="badge text-bg-warning">Open</span>{% endif %}</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if session.user_id == current_user.id or current_user.is_admin %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('work.session_edit', session_id=session.id) }}">Edit</a>
+    {% endif %}
+    <a class="btn btn-outline-primary" href="{{ url_for('work.sessions_list') }}">All sessions</a>
+  </div>
+</div>
+<dl class="row mb-4">
+  <dt class="col-sm-3">Hours</dt>
+  <dd class="col-sm-9">{% if session.hours_worked is not none %}{{ session.hours_worked }}{% else %}—{% endif %}</dd>
+  <dt class="col-sm-3">Income</dt>
+  <dd class="col-sm-9">{% if session.income is not none %}{{ session.income }}{% else %}—{% endif %}</dd>
+  <dt class="col-sm-3">Expenses</dt>
+  <dd class="col-sm-9">{% if session.expenses is not none %}{{ session.expenses }}{% else %}—{% endif %}</dd>
+  {% if session.notes %}
+  <dt class="col-sm-3">Notes</dt>
+  <dd class="col-sm-9">{{ session.notes }}</dd>
+  {% endif %}
+</dl>
+
+{% if session.end_time is none and (session.user_id == current_user.id or current_user.is_admin) %}
+<form method="post" action="{{ url_for('work.session_stop', session_id=session.id) }}" class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Stop session</h2>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="end_time">End time</label>
+        <input class="form-control" type="time" id="end_time" name="end_time" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="hours_worked">Hours (optional override)</label>
+        <input class="form-control" type="text" name="hours_worked" id="hours_worked" inputmode="decimal" placeholder="Auto from start/end">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary">Stop</button>
+      </div>
+    </div>
+  </div>
+</form>
+<script>
+  (function () {
+    var t = document.getElementById('end_time');
+    if (t && !t.value) {
+      var n = new Date();
+      t.value = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+  })();
+</script>
+{% endif %}
+
+<h2 class="h5">Tasks</h2>
+{% if tasks %}
+<ul class="list-group mb-3">
+  {% for t in tasks %}
+  <li class="list-group-item">{{ t.task_text }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">No tasks yet.</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('work.session_add_task', session_id=session.id) }}" class="mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <label class="form-label" for="task_text">Add task</label>
+  <div class="input-group">
+    <input class="form-control" type="text" id="task_text" name="task_text" maxlength="4000" placeholder="What did you work on?" required>
+    <button type="submit" class="btn btn-outline-primary">Add</button>
+  </div>
+</form>
+{% endblock %}

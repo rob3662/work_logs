@@ -1,0 +1,61 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Start session — {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="mb-3">Start session</h1>
+{% if active %}
+<div class="alert alert-warning">
+  You have an <a href="{{ url_for('work.session_detail', session_id=active.id) }}">open session</a> for <strong>{{ active.project }}</strong> on {{ active.work_date }}.
+</div>
+{% endif %}
+<form method="post" class="col-lg-8">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="mb-3">
+    <label class="form-label" for="project">Project</label>
+    <input class="form-control" type="text" id="project" name="project" required maxlength="200" placeholder="e.g. Client site rebuild">
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label class="form-label" for="work_date">Date</label>
+      <input class="form-control" type="date" id="work_date" name="work_date" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="start_time">Start time</label>
+      <input class="form-control" type="time" id="start_time" name="start_time" required>
+    </div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label class="form-label" for="income">Income (optional)</label>
+      <input class="form-control" type="text" id="income" name="income" inputmode="decimal" placeholder="0.00">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="expenses">Expenses total (optional)</label>
+      <input class="form-control" type="text" id="expenses" name="expenses" inputmode="decimal" placeholder="0.00">
+    </div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="notes">Notes (optional)</label>
+    <textarea class="form-control" id="notes" name="notes" rows="3" maxlength="8000"></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary" {% if active %}disabled{% endif %}>Start</button>
+  <a class="btn btn-outline-secondary ms-2" href="{{ url_for('work.sessions_list') }}">Cancel</a>
+</form>
+<script>
+  (function () {
+    var d = document.getElementById('work_date');
+    if (d && !d.value) {
+      d.valueAsDate = new Date();
+    }
+    var t = document.getElementById('start_time');
+    if (t && !t.value) {
+      var n = new Date();
+      t.value = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+    }
+  })();
+</script>
+{% endblock %}

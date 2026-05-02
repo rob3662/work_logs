@@ -92,6 +92,7 @@ def init_db() -> None:
                 email TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 is_admin BOOLEAN DEFAULT FALSE,
+                is_site_admin BOOLEAN DEFAULT FALSE,
                 email_verified BOOLEAN DEFAULT FALSE,
                 verification_token TEXT,
                 personal_email TEXT,
@@ -115,6 +116,11 @@ def init_db() -> None:
             "users",
             "tenant_id",
             "ALTER TABLE users ADD COLUMN tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE;",
+        )
+        _ensure_column(
+            "users",
+            "is_site_admin",
+            "ALTER TABLE users ADD COLUMN is_site_admin BOOLEAN DEFAULT FALSE;",
         )
 
         row = execute_query("SELECT id FROM tenants ORDER BY id LIMIT 1", fetch_one=True)
@@ -154,9 +160,9 @@ def init_db() -> None:
                 execute_query(
                     """
                     INSERT INTO users (
-                        tenant_id, username, email, password_hash, is_admin, email_verified,
-                        verification_token, created_at
-                    ) VALUES (%s, %s, %s, %s, TRUE, TRUE, NULL, %s)
+                        tenant_id, username, email, password_hash, is_admin, is_site_admin,
+                        email_verified, verification_token, created_at
+                    ) VALUES (%s, %s, %s, %s, TRUE, TRUE, TRUE, NULL, %s)
                     """,
                     (
                         default_tenant_id,
@@ -172,6 +178,96 @@ def init_db() -> None:
             logger.warning(
                 "ADMIN_EMAIL_IN_DB / ADMIN_PASSWORD_IN_DB not set; skipping admin seed"
             )
+
+        # Site-wide admin flag (global /admin); tenant owners use is_admin only.
+        admin_email_flag = (os.environ.get("ADMIN_EMAIL_IN_DB") or "").strip().lower()
+        if admin_email_flag:
+            execute_query(
+                """
+                UPDATE users SET is_site_admin = TRUE
+                WHERE LOWER(TRIM(email)) = %s AND COALESCE(is_site_admin, FALSE) = FALSE
+                """,
+                (admin_email_flag,),
+                fetch_all=False,
+            )
+
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS work_sessions (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                project TEXT NOT NULL DEFAULT '',
+                work_date DATE NOT NULL,
+                start_time TIME WITHOUT TIME ZONE NOT NULL,
+                end_time TIME WITHOUT TIME ZONE,
+                hours_worked NUMERIC(10,2),
+                notes TEXT NOT NULL DEFAULT '',
+                income NUMERIC(12,2),
+                expenses NUMERIC(12,2),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_work_sessions_tenant_work_date
+            ON work_sessions (tenant_id, work_date DESC);
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_work_sessions_tenant_user
+            ON work_sessions (tenant_id, user_id);
+            """,
+            fetch_all=False,
+        )
+
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS work_tasks (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                session_id INTEGER NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+                task_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_work_tasks_session
+            ON work_tasks (session_id);
+            """,
+            fetch_all=False,
+        )
+
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS work_expense_items (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                session_id INTEGER NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+                amount NUMERIC(12,2) NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_work_expense_items_session
+            ON work_expense_items (session_id);
+            """,
+            fetch_all=False,
+        )
 
         logger.info("Database initialization (template) completed")
     except Exception as e:

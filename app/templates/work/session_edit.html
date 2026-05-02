@@ -1,0 +1,51 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Edit session — {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="mb-3">Edit session</h1>
+<form method="post" class="col-lg-8">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="mb-3">
+    <label class="form-label" for="project">Project</label>
+    <input class="form-control" type="text" id="project" name="project" required maxlength="200" value="{{ session.project }}">
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label" for="work_date">Date</label>
+      <input class="form-control" type="date" id="work_date" name="work_date" required value="{{ session.work_date }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="start_time">Start time</label>
+      <input class="form-control" type="time" id="start_time" name="start_time" required value="{{ (session.start_time|string)[:5] }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="end_time">End time (optional)</label>
+      <input class="form-control" type="time" id="end_time" name="end_time" value="{% if session.end_time %}{{ (session.end_time|string)[:5] }}{% endif %}">
+    </div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="hours_worked">Hours worked</label>
+    <input class="form-control" type="text" id="hours_worked" name="hours_worked" inputmode="decimal" value="{% if session.hours_worked is not none %}{{ session.hours_worked }}{% endif %}" placeholder="Leave blank if open">
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label class="form-label" for="income">Income</label>
+      <input class="form-control" type="text" id="income" name="income" inputmode="decimal" value="{% if session.income is not none %}{{ session.income }}{% endif %}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="expenses">Expenses</label>
+      <input class="form-control" type="text" id="expenses" name="expenses" inputmode="decimal" value="{% if session.expenses is not none %}{{ session.expenses }}{% endif %}">
+    </div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="notes">Notes</label>
+    <textarea class="form-control" id="notes" name="notes" rows="4" maxlength="8000">{{ session.notes or '' }}</textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Save</button>
+  <a class="btn btn-outline-secondary ms-2" href="{{ url_for('work.session_detail', session_id=session.id) }}">Back</a>
+</form>
+{% endblock %}

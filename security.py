@@ -79,13 +79,13 @@ limiter = Limiter(
 
 @limiter.request_filter
 def exempt_admin_from_rate_limit():
-    """Globally exempt the admin user from rate limiting.
-    Admin is identified by `is_admin` flag or username 'user_1' or id 1.
-    """
+    """Globally exempt the site admin user from rate limiting."""
     try:
         from flask_login import current_user
         if current_user.is_authenticated:
-            if getattr(current_user, 'is_admin', False) or getattr(current_user, 'username', None) == 'user_1' or getattr(current_user, 'id', None) == 1:
+            if getattr(current_user, "is_site_admin", False) or getattr(
+                current_user, "username", None
+            ) == "user_1" or getattr(current_user, "id", None) == 1:
                 return True
     except Exception:
         return False
@@ -257,7 +257,9 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         from flask_login import current_user
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not getattr(
+            current_user, "is_site_admin", False
+        ):
             log_security_event('unauthorized_admin_access', current_user.id if current_user.is_authenticated else None)
             return jsonify({
                 "success": False,
