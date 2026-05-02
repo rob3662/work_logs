@@ -1,0 +1,15 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Home — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="p-4 p-md-5 mb-4 bg-light rounded-3">
+    <h1 class="display-6">{{ app_name }}</h1>
+    <p class="lead">Starter Flask app: auth, multi-tenant DB seed, Redis-backed limits, Mailgun/SendGrid/SMTP, Stripe webhook stub, and production deployment scripts.</p>
+    <a class="btn btn-primary btn-lg" href="{{ url_for('auth.register') }}">Create account</a>
+    <a class="btn btn-outline-secondary btn-lg ms-2" href="{{ url_for('auth.login') }}">Log in</a>
+</div>
+{% endblock %}

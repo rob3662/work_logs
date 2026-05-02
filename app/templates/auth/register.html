@@ -1,0 +1,42 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Register — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <h2 class="mb-3">Create account</h2>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="mb-3">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control" type="text" id="username" name="username" minlength="3" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-control" type="email" id="email" name="email" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" type="password" id="password" name="password" minlength="8" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="confirm_password">Confirm password</label>
+        <input class="form-control" type="password" id="confirm_password" name="confirm_password" minlength="8" required>
+      </div>
+      {% if RECAPTCHA_SITE_KEY %}
+      <div class="mb-3">
+        <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_SITE_KEY }}"></div>
+      </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+  </div>
+</div>
+{% if RECAPTCHA_SITE_KEY %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endif %}
+{% endblock %}

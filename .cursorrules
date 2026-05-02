@@ -1,0 +1,77 @@
+# Website Development Rules (containerized Flask template)
+# Align with website_guidelines.md in this repository.
+
+## Core principles
+- Multi-tenant by default: **`tenant_id` references `tenants(id)`**; users live in `users` with `tenant_id`. New business tables that belong to a tenant must include `tenant_id` and filter by it in queries.
+- Security first: rate limiting, CSRF on state-changing requests, server-side validation, `bleach` where users supply rich text.
+- Optional table prefixes (`pc_`, `fc_`, `custom_`) only if you split domains; the starter uses plain names (`tenants`, `users`, …).
+- Flask-Login with `User(UserMixin)`; keep session cookies `HTTPONLY` as configured.
+- Prefer clear errors and structured logging.
+
+## Code standards
+- Include license headers in source and template files you add or materially edit.
+- **Parameterized queries only** (`execute_query` with `%s` placeholders).
+- Consistent JSON responses for APIs where used: `success` / `error` and a **timestamp** when returning JSON.
+- Match existing module layout: `app/app.py`, `routes.py`, `auth.py`, `database.py`, `security.py`, `email_service.py`, `setup_database.py`.
+
+## Database standards (this template)
+- Schema and **idempotent upgrades** live in **`setup_database.py` → `init_db()`** (`CREATE TABLE IF NOT EXISTS`, `_ensure_column` / guarded `ALTER TABLE`). There is **no** `database_schema.sql` or `migrate_database.py` in this starter.
+- **`init_db()` is invoked from `app/app.py` on startup** under a file lock so one worker runs DDL; safe to re-run.
+- Target shape for new tenant-owned tables: `id`, **`tenant_id` → tenants(id)**, `created_at`, `updated_at`, FKs with sensible `ON DELETE` behavior.
+- For production-only hotfixes on mature apps, prefer **new guarded steps** in `init_db()` (or a separate migration process you add later)—do not rewrite history for environments that already applied it.
+
+## Security requirements
+- Rate-limit sensitive routes and forms (Flask-Limiter + Redis when configured).
+- CSRF: Flask-WTF; forms use hidden `csrf_token` field where applicable.
+- Log security-related actions to **`security_events`** via `log_security_event` where appropriate.
+- Validate and sanitize all external input server-side.
+
+## File organization (this repo)
+```
+project_template_containerized/
+├── app/
+│   ├── app.py              # Application factory, startup DB init
+│   ├── static/
+│   └── templates/
+├── routes.py
+├── auth.py
+├── database.py
+├── security.py
+├── email_service.py        # Mailgun → SendGrid → SMTP (not Flask-Mail)
+├── setup_database.py
+├── requirements.txt
+├── .env.example
+├── Containerfile
+├── deployment_items/       # website_setup.sh, init_new_project.sh, DEPLOYMENT.md
+└── website_guidelines.md
+```
+
+## Frontend standards
+- Bootstrap 5 + theme via `data-theme` and `app/static/js/theme.js`.
+- Responsive, mobile-first layouts; bump **`ASSETS_VERSION`** in `.env` when shipping CSS/JS changes.
+- SEO: meaningful `<title>` / description; add Open Graph / schema when you add real marketing assets (starter is minimal).
+
+## Email standards
+- Transactional mail through **`email_service.py`** (templates under `app/templates/emails/`).
+- Inline-friendly HTML for emails; license header in email templates you own.
+
+## Static assets
+- Starter includes **`favicon.svg`** and project-root **`robots.txt`**; dynamic **`sitemap.xml`** route exists—add OG/social images when branding.
+
+## Error handling
+- Use `app/templates/errors/` (404, 403, 500); log server errors; user-facing copy stays non-technical.
+
+## API design
+- RESTful paths under `/api/...` where applicable; correct HTTP status codes; include timestamps in JSON bodies when returning JSON.
+
+## Logging
+- Use module loggers; security events to DB where `security_events` applies; avoid noisy debug in production.
+
+## Testing / review (before ship)
+- Forms (validation + CSRF + rate limits), auth flows, email send paths, theme toggle, responsive checks.
+- After meaningful changes: **commit and push**.
+
+## Quick reference
+- **`website_guidelines.md`** — detailed patterns for this template.
+- **`TEMPLATE_USAGE.md`** — bootstrap from this folder.
+- **`deployment_items/DEPLOYMENT.md`** — Podman / Quadlet deployment notes.

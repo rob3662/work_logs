@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Test cache
+.pytest_cache/
+.tox/
+.coverage
+coverage.xml
+*.cover
+*.log
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Sensitive files
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+
+# OS/System files
+.DS_Store
+Thumbs.db
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/

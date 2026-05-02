@@ -1,0 +1,143 @@
+#!/bin/bash
+
+# work_logs Database Restore Script (DB-only)
+#
+# Usage:
+#   ./restore_work_logs
+#       With no args: uses .sql file(s) in deployment_items/backup_to_restore/
+#   ./restore_work_logs <timestamp|filename|path>
+#       See usage output for resolution order.
+
+set -e
+
+APP_NAME="work_logs"
+APP_DIR="/home/rob3662/Shared/Projects/webserver/work_logs"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_RESTORE_DIR="$SCRIPT_DIR/backup_to_restore"
+BACKUP_DIR="/home/${SERVICE_USER}/backups/work_logs"
+DB_NAME="work_logs_db"
+DB_USER="work_logs_user"
+SERVICE_NAME="work_logs"
+
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >&2; }
+
+usage() {
+  echo "Usage: $0 [timestamp|sql_file|path]"
+  echo ""
+  echo "With no arguments: use a .sql file in:"
+  echo "  $LOCAL_RESTORE_DIR"
+  echo ""
+  echo "With an argument, resolution order:"
+  echo "  1) Path if that file already exists"
+  echo "  2) $LOCAL_RESTORE_DIR/<argument>"
+  echo "  3) $BACKUP_DIR/database_backup_<argument>.sql"
+  echo "  4) $BACKUP_DIR/<argument> if it matches database_backup_*.sql"
+  echo ""
+  echo "Server backup directory (from backup cron):"
+  ls -1 "$BACKUP_DIR"/database_backup_*.sql 2>/dev/null | sed "s|$BACKUP_DIR/||" || echo "  (none found)"
+}
+
+pick_local_backup() {
+  mkdir -p "$LOCAL_RESTORE_DIR"
+  local -a candidates=()
+  shopt -s nullglob
+  candidates=("$LOCAL_RESTORE_DIR"/*.sql)
+  shopt -u nullglob
+
+  local n=${#candidates[@]}
+  if [ "$n" -eq 0 ]; then
+    return 1
+  fi
+
+  if [ "$n" -eq 1 ]; then
+    log "Found SQL dump in backup_to_restore/: $(basename "${candidates[0]}")"
+    read -r -p "Use this file for restore? (yes/no): " confirm
+    if [ "$confirm" != "yes" ]; then
+      log "Restoration cancelled"
+      exit 0
+    fi
+    printf '%s\n' "${candidates[0]}"
+    return 0
+  fi
+
+  log "Multiple .sql files in backup_to_restore/:"
+  local i=1
+  for f in "${candidates[@]}"; do
+    echo "  $i) $(basename "$f")" >&2
+    i=$((i + 1))
+  done
+  read -r -p "Enter number (1-$n) or c to cancel: " pick
+  if [ "$pick" = "c" ] || [ "$pick" = "C" ]; then
+    log "Restoration cancelled"
+    exit 0
+  fi
+  if ! [[ "$pick" =~ ^[0-9]+$ ]] || [ "$pick" -lt 1 ] || [ "$pick" -gt "$n" ]; then
+    log "ERROR: Invalid selection"
+    exit 1
+  fi
+  printf '%s\n' "${candidates[$((pick - 1))]}"
+  return 0
+}
+
+resolve_backup_path() {
+  local input="$1"
+  if [ -f "$input" ]; then
+    printf '%s\n' "$(cd "$(dirname "$input")" && pwd)/$(basename "$input")"
+    return 0
+  fi
+  if [ -f "$LOCAL_RESTORE_DIR/$input" ]; then
+    printf '%s\n' "$LOCAL_RESTORE_DIR/$input"
+    return 0
+  fi
+  if [[ "$input" == database_backup_*.sql ]] && [ -f "$BACKUP_DIR/$input" ]; then
+    printf '%s\n' "$BACKUP_DIR/$input"
+    return 0
+  fi
+  local server_path="$BACKUP_DIR/database_backup_${input}.sql"
+  if [ -f "$server_path" ]; then
+    printf '%s\n' "$server_path"
+    return 0
+  fi
+  return 1
+}
+
+if [ $# -eq 0 ]; then
+  if ! DB_SQL="$(pick_local_backup)"; then
+    log "ERROR: No .sql files in $LOCAL_RESTORE_DIR"
+    echo "Copy a PostgreSQL dump (.sql) into that directory, or pass a timestamp/filename." >&2
+    usage
+    exit 1
+  fi
+else
+  if ! DB_SQL="$(resolve_backup_path "$1")"; then
+    log "ERROR: Database SQL not found for: $1"
+    usage
+    exit 1
+  fi
+fi
+
+[ -f "$DB_SQL" ] || { log "ERROR: Database SQL not found: $DB_SQL"; exit 1; }
+
+log "Selected dump: $DB_SQL"
+
+echo "" >&2
+echo "WARNING: This will OVERWRITE the current database only." >&2
+read -r -p "Are you sure you want to continue? (yes/no): " confirm
+[ "$confirm" = "yes" ] || { log "Restoration cancelled"; exit 0; }
+
+log "Stopping $SERVICE_NAME (Quadlet may use .service, -container, or container- prefix)..."
+sudo systemctl stop "${SERVICE_NAME}.service" 2>/dev/null || true
+sudo systemctl stop "${SERVICE_NAME}-container.service" 2>/dev/null || true
+sudo systemctl stop "container-${SERVICE_NAME}.service" 2>/dev/null || true
+
+DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | sed 's/^DB_PASSWORD=//' | tr -d '"')
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
+PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d "$DB_NAME" < "$DB_SQL"
+
+log "Starting $SERVICE_NAME container unit..."
+sudo systemctl start "${SERVICE_NAME}.service" 2>/dev/null || true
+sudo systemctl start "${SERVICE_NAME}-container.service" 2>/dev/null || true
+sudo systemctl start "container-${SERVICE_NAME}.service" 2>/dev/null || true
+
+log "DB Restore complete"
