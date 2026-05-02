@@ -1,0 +1,244 @@
+[
+  {
+    "date": "2025-05-19",
+    "session_id": 1747693515,
+    "start_time": "19:55",
+    "end_time": "20:57",
+    "hours_worked": 1.04,
+    "adsense_earnings": 0,
+    "notes": "compiling prices for V2 controller",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-20",
+    "session_id": 1747778095,
+    "start_time": "19:24",
+    "end_time": "20:24",
+    "hours_worked": 1,
+    "adsense_earnings": 0,
+    "notes": "installed freecad, finalized model for V2 board",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-21",
+    "session_id": 1747862452,
+    "start_time": "18:50",
+    "end_time": "21:38",
+    "hours_worked": 2.81,
+    "adsense_earnings": 0,
+    "notes": "Assembled V2 Board",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-22",
+    "session_id": 1747939963,
+    "start_time": "16:22",
+    "end_time": "19:22",
+    "hours_worked": 3,
+    "adsense_earnings": 0,
+    "notes": "setup raspberry pi, installed dependencies, configured wifi",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-23",
+    "session_id": 1748027642,
+    "start_time": "16:44",
+    "end_time": "18:44",
+    "hours_worked": 2,
+    "adsense_earnings": 0,
+    "notes": "getting old setup running on v2 board",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-24",
+    "session_id": 1748090356,
+    "start_time": "10:09",
+    "end_time": "14:39",
+    "hours_worked": "4",
+    "adsense_earnings": 0,
+    "notes": "created test script for v2 board, added connector to temp probe and sensor, tested v2 board. Started testing 4 relay board for bluetooth switch",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-24",
+    "session_id": 1748113947,
+    "start_time": "16:42",
+    "end_time": "20:33",
+    "hours_worked": 3.85,
+    "adsense_earnings": 0,
+    "notes": "working on pin configuration to make controller more modular",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-25",
+    "session_id": 1748176294,
+    "start_time": "10:01",
+    "end_time": "10:35",
+    "hours_worked": 0.57,
+    "adsense_earnings": "NONE",
+    "notes": "- fixed work logging scripts",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-25",
+    "session_id": 1748178339,
+    "start_time": "10:35",
+    "end_time": "13:30",
+    "hours_worked": 2.92,
+    "notes": "- Got 128x64 oled working and test added to board_tester.py\n- Added testing for both sht sensors that I have\n- implemented heater test for sht31d\n- Debugging phase 1 changes to grow_control",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-25",
+    "session_id": 1748196218,
+    "start_time": "15:33",
+    "end_time": "18:37",
+    "hours_worked": 3.08,
+    "notes": "- woworking on debugging of new settings setup and state arrangment",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-27",
+    "session_id": 1748351625,
+    "start_time": "10:43",
+    "end_time": "13:04",
+    "hours_worked": 2.35,
+    "notes": "\n- working on bugs from changes, grow light fixed, working on exhaust fan now",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-27",
+    "session_id": 1748362505,
+    "start_time": "13:45",
+    "end_time": "15:01",
+    "hours_worked": 1.27,
+    "notes": "\n- fixing bugs in lighting, fan, heater, index, settings",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-05-27",
+    "session_id": 1748370793,
+    "start_time": "16:03",
+    "end_time": "16:35",
+    "hours_worked": 0.53,
+    "notes": "\n- phase 1 and most of phase 2 complete",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-02",
+    "session_id": 1748900746,
+    "start_time": "19:15",
+    "end_time": "21:04",
+    "hours_worked": 1.81,
+    "notes": "- update pcb model to have pi bottom mounted parallel to main board.\n- finalized usb-c pinout for all connections.",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-03",
+    "session_id": 1748977148,
+    "start_time": "16:29",
+    "end_time": "17:11",
+    "hours_worked": 0.7,
+    "notes": "",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-03",
+    "session_id": 1748988981,
+    "start_time": "19:46",
+    "end_time": "20:47",
+    "hours_worked": 1.03,
+    "notes": "- designed v2 enclosure",
+    "project": "pi"
+  },
+  {
+    "date": "2025-06-08",
+    "session_id": 1749383958,
+    "start_time": "09:29",
+    "end_time": "11:29",
+    "hours_worked": 2,
+    "notes": "\n- Fixed issues with calling flask function outside of flask. updated settings and index page.",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-08",
+    "session_id": 1749402264,
+    "start_time": "14:34",
+    "end_time": "15:25",
+    "hours_worked": 0.85,
+    "notes": "\n- changed reinitialize oled button to show for all oled errors",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-08",
+    "session_id": 1749406017,
+    "start_time": "15:36",
+    "end_time": "17:18",
+    "hours_worked": 1.7,
+    "notes": "\n- setting up website to use my domain through cloudflare.",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-09",
+    "session_id": 1749474875,
+    "start_time": "10:44",
+    "end_time": "12:57",
+    "hours_worked": 2.22,
+    "notes": "\n- working on deployment todo and creation of deployment_steps.",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-09",
+    "session_id": 1749486867,
+    "start_time": "14:04",
+    "end_time": "14:48",
+    "hours_worked": 0.74,
+    "notes": "\n- working on login for website",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-09",
+    "session_id": 1749506711,
+    "start_time": "19:35",
+    "end_time": "NONE",
+    "hours_worked": "NONE",
+    "notes": "NONE",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-10",
+    "session_id": 1749590062,
+    "start_time": "18:44",
+    "end_time": "21:21",
+    "hours_worked": 2.61,
+    "notes": "\n- working on setup script",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-11",
+    "session_id": 1749671689,
+    "start_time": "17:24",
+    "end_time": "18:45",
+    "hours_worked": 1.35,
+    "notes": "\n- working on setup script, and starting to implement mcp3008",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-11",
+    "session_id": 1749680609,
+    "start_time": "19:53",
+    "end_time": "21:39",
+    "hours_worked": 1.76,
+    "notes": "\n- fixed issue with setup script and working on mcp3308 integration",
+    "project": "grow_controller_v2"
+  },
+  {
+    "date": "2025-06-12",
+    "session_id": 1749765722,
+    "start_time": "19:32",
+    "end_time": "22:32",
+    "hours_worked": 3,
+    "notes": "\n- configuring light sensor with mcp3008 and updating webpage with same",
+    "project": "grow_controller_v2"
+  }
+]
