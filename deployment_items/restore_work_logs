@@ -11,7 +11,7 @@
 set -e
 
 APP_NAME="work_logs"
-APP_DIR="/home/rob3662/Shared/Projects/webserver/work_logs"
+APP_DIR="/home/rob3662/work_logs"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_RESTORE_DIR="$SCRIPT_DIR/backup_to_restore"
 BACKUP_DIR="/home/${SERVICE_USER}/backups/work_logs"

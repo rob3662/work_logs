@@ -2,6 +2,10 @@
 
 This template follows the same **containerized app + Quadlet** approach as the main site: build a Podman image from `Containerfile`, run it with a `.container` unit, reverse-proxy with Nginx, optional Cloudflare tunnel.
 
+## Cloudflare tunnel and DNS
+
+A healthy tunnel in Zero Trust does **not** imply public DNS is correct. For each public hostname you must add DNS in the **apex** zone (see `Guides/CLOUDFLARE_SETUP.md`). A dedicated tunnel needs its own CNAME (or Tunnel record) to `<CLOUDFLARE_TUNNEL_ID>.cfargotunnel.com`, not the hostname target used by other apps on the same domain.
+
 ## Steps
 
 1. Prepare the host (Postgres, Redis, Nginx, Podman network) using your server bootstrap process.

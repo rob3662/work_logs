@@ -169,7 +169,9 @@ cloudflare_tunnel_manual_setup_instructions() {
     print_warning "  CLOUDFLARE_ACCOUNT_TAG=<AccountTag>"
     print_warning "  CLOUDFLARE_TUNNEL_SECRET=\"<TunnelSecret>\""
     print_warning ""
-    print_warning "Re-run this setup script. In Cloudflare DNS add a CNAME: ${dom} -> <TunnelID>.cfargotunnel.com"
+    _apex="${dom#*.}"
+    _rel="${dom%.$_apex}"
+    print_warning "Re-run this setup script. In the DNS zone for ${_apex}, add a proxied CNAME: name ${_rel}, target <TunnelID>.cfargotunnel.com"
     print_warning ""
 }
 
@@ -1008,7 +1010,8 @@ EOF
     # Get Gunicorn workers from .env or use default
     ENV_GUNICORN_WORKERS=""
     if [ -f "$WORKING_DIR/.env" ]; then
-        ENV_GUNICORN_WORKERS=$(grep "^GUNICORN_WORKERS=" "$WORKING_DIR/.env" | head -n1 | cut -d'=' -f2 | tr -d ' "')
+        # Strip inline # comments and whitespace (otherwise "1  # comment" becomes "1#comment" after tr -d ' ').
+        ENV_GUNICORN_WORKERS=$(grep "^GUNICORN_WORKERS=" "$WORKING_DIR/.env" | head -n1 | sed 's/^[^=]*=//' | sed 's/[[:space:]]*#.*//' | tr -d ' \t"')
         if [ -n "$ENV_GUNICORN_WORKERS" ]; then
             GUNICORN_WORKERS="$ENV_GUNICORN_WORKERS"
         fi
@@ -1041,6 +1044,10 @@ EOF
     print_status "Setting up containerized systemd (Quadlet) unit..."
     sudo rm -f "/etc/systemd/system/${WEBSITE_NAME}.service" 2>/dev/null || true
 
+    # Run the app as the deploy user so bind-mounted logs and __pycache__ are not root-owned on the host.
+    DEPLOY_UID=$(id -u "$SERVICE_USER")
+    DEPLOY_GID=$(id -g "$SERVICE_USER")
+
     sudo tee /etc/containers/systemd/${WEBSITE_NAME}.container > /dev/null << EOF
 [Unit]
 Description=Containerized Gunicorn instance for ${WEBSITE_NAME}
@@ -1051,6 +1058,8 @@ ContainerName=${WEBSITE_NAME}
 Image=${LOCAL_IMAGE_NAME}
 Pull=never
 Network=webserver-net
+User=${DEPLOY_UID}
+Group=${DEPLOY_GID}
 # Ensure external SMTP hostnames resolve from inside the container.
 DNS=1.1.1.1
 DNS=8.8.8.8
@@ -1468,11 +1477,18 @@ EOF
     print_status "Security snapshot: SELinux=$(getenforce 2>/dev/null || echo '?') fail2ban=$(systemctl is-active fail2ban 2>/dev/null || echo '?') firewalld=$(systemctl is-active firewalld 2>/dev/null || echo '?')"
 fi
 
-# Fix ownership of all files created during setup
+# Fix ownership of all files created during setup (container may leave root-owned files on the bind mount;
+# when this script is not invoked as root, chown requires sudo).
 print_status "Fixing file ownership..."
-chown -R $SERVICE_USER:$SERVICE_USER "$WORKING_DIR"
-chmod -R 755 "$WORKING_DIR"
-chmod 600 "$WORKING_DIR/.env"
+if [ "$(id -u)" -eq 0 ]; then
+    chown -R "$SERVICE_USER:$SERVICE_USER" "$WORKING_DIR"
+    chmod -R 755 "$WORKING_DIR"
+    chmod 600 "$WORKING_DIR/.env"
+else
+    sudo chown -R "$SERVICE_USER:$SERVICE_USER" "$WORKING_DIR"
+    sudo chmod -R 755 "$WORKING_DIR"
+    sudo chmod 600 "$WORKING_DIR/.env"
+fi
 
 # Final status messages
 print_status "Setup completed successfully!"
@@ -1491,8 +1507,14 @@ if [ "$IS_PRODUCTION" = true ]; then
             print_warning "Public hostname (configure DNS/reverse-proxy as you prefer): https://${DOMAIN_NAME}"
         fi
     elif [ -n "$TUNNEL_ID" ] && [ "$TUNNEL_ID" != "your_tunnel_id_here" ]; then
-        print_warning "1. Create CNAME record in Cloudflare DNS:"
-        print_warning "   - ${DOMAIN_NAME} -> ${TUNNEL_ID}.cfargotunnel.com"
+        # For logs.brakesystems.ca → apex brakesystems.ca, relative name logs (not another zone on the account).
+        DNS_APEX="${DOMAIN_NAME#*.}"
+        DNS_REL="${DOMAIN_NAME%.$DNS_APEX}"
+        print_warning "1. Cloudflare DNS for this app (dedicated tunnel ${WEBSITE_NAME}-tunnel):"
+        print_warning "   In the DNS zone for ${DNS_APEX} (e.g. brakesystems.ca subdomains), add manually a proxied CNAME or Tunnel record:"
+        print_warning "   Name: ${DNS_REL}   Target: ${TUNNEL_ID}.cfargotunnel.com"
+        print_warning "   (Other subdomains may point at a different tunnel; this hostname must use this tunnel ID.)"
+        print_warning "   cloudflared tunnel route dns can attach to the wrong zone if the account has multiple zones — prefer manual DNS in the intended zone."
         print_warning "2. Set Cloudflare SSL/TLS mode to 'Full (strict)'"
         print_warning "3. DB backup: sudo crontab -l (default 02:00 — BACKUP_CRON_SCHEDULE to change)"
         print_warning "4. Root cron: sudo crontab -l (cloudflared: /etc/webserver/update_cloudflared.sh; DDNS/reboot from server_bootstrap)"
