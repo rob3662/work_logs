@@ -12,6 +12,7 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 - **`work_sessions`**, **`work_tasks`**, **`work_expense_items`** (+ `user_id` on sessions for starter, **`ended_by_user_id`** when stopped, **`user_id`** on tasks for who added each task).
 - **`/work`** session list, start, detail, stop, edit; tasks add with attribution; dashboard recent sessions + **Started by** column.
 - **`tenant_invites`**: `/work/team` (invite/revoke), **`/auth/accept-invite/<token>`**, email template; optional **`TENANT_INVITE_EXPIRES_DAYS`** (default 7).
+- **Phase 2 wrap-up:** session **delete** (confirm); **expense lines** on session detail (add/remove, total synced); task **edit/delete**; **`/work/reports`** (Generic / EI tabs, date range + project filter, **CSV** export with `kind=generic|ei`).
 
 ---
 
@@ -20,7 +21,7 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 ### 1.1 Baseline
 
 - [x] Confirm `.env` / PostgreSQL connectivity for local and server (template already in use).
-- [ ] Document work_logs-specific env vars in one place (e.g. `TENANT_INVITE_EXPIRES_DAYS`, `APP_NAME`, Mailgun/SMTP as used by this app).
+- [x] Document work_logs-specific env vars in one place — see **`.env.example`** (copy to `.env`). Includes `APP_NAME`, `TENANT_INVITE_EXPIRES_DAYS`, DB, Mailgun/SendGrid/SMTP, admin seed, and common template vars.
 
 ### 1.2 Database — work log tables
 
@@ -47,19 +48,19 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 ### 2.2 Session CRUD
 
 - [x] Start / stop / edit sessions (CSRF, validation, rate limits).
-- [ ] **Delete** session (with confirmation and permission rules).
+- [x] **Delete** session (POST + confirm; owner or tenant admin; cascades tasks/expense lines).
 - [x] Income / expense totals on session row.
-- [ ] **`work_expense_items`** UI (table exists; no add/list/edit in app yet).
+- [x] **`work_expense_items`** UI on session detail; totals **recomputed** from lines on add/remove.
 
 ### 2.3 Task CRUD
 
 - [x] Add tasks linked to `session_id` + `tenant_id`; store **`user_id`** (who added).
-- [ ] Edit / delete tasks (and permission rules).
+- [x] Edit / delete tasks (author or tenant admin).
 
 ### 2.4 Reporting
 
-- [ ] **Generic:** aggregates by date range and project; hours, income, expenses, net; CSV export.
-- [ ] **EI-oriented:** dedicated report(s) and/or export labels for self-employment / EI documentation (same tenant rows).
+- [x] **Generic:** aggregates by date range and optional project filter; hours, income, expenses, net; **CSV** export.
+- [x] **EI-oriented:** same data with documentation-oriented labels + **CSV** variant (`kind=ei`).
 - [ ] Optional: simple charts for hours and money over time.
 
 ---
@@ -80,17 +81,17 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 
 - [x] List and detail views; edit; **Started by** / **Stopped by** on detail; list + dashboard show starter.
 - [ ] List **filters** (date range, project).
-- [ ] **Delete** session with confirmation.
+- [x] **Delete** session with confirmation (on detail).
 
 ### 3.4 Tasks UI
 
 - [x] Add tasks on session detail; show **who added** each task.
-- [ ] Edit / delete task actions.
+- [x] Edit / delete task actions (detail page + edit form).
 
 ### 3.5 Reports UI
 
-- [ ] Reports page: **Generic** and **EI-oriented** sections (or tabs).
-- [ ] CSV download; print-friendly optional.
+- [x] Reports page: **Generic** and **EI-oriented** tabs (`/work/reports`).
+- [x] CSV download (`/work/reports/export.csv`); print-friendly optional.
 
 ### 3.6 Tenant admin / invites
 
@@ -125,7 +126,7 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 
 - [ ] Unit/integration tests for session/task endpoints and `tenant_id` isolation.
 - [x] Manual smoke: invites + sessions (keep repeating after major changes).
-- [ ] Verify generic and EI report numbers once reporting exists.
+- [ ] Verify generic and EI report numbers against manual sums after data changes.
 
 ---
 
@@ -141,7 +142,7 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 ## Success criteria
 
 - [x] Tenant owner can run core session + task workflow; invitees can join and use the same tenant data.
-- [ ] Full expense line items + reporting + CSV.
-- [ ] Generic and EI-oriented reporting and export available.
+- [x] Expense line items + reporting + CSV (including EI-oriented labels/export).
+- [x] Generic and EI-oriented reporting and export available.
 - [x] No work-type field; separation only by account/tenant.
 - [x] Deployed at **logs.brakesystems.ca** with schema upgrades via **`init_db()`** (ongoing: add new guarded DDL as features land).

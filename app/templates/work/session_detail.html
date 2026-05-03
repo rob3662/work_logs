@@ -12,8 +12,14 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <p class="text-muted mb-0">{{ session.work_date }} · {{ (session.start_time|string)[:5] }}{% if session.end_time %} – {{ (session.end_time|string)[:5] }}{% else %} · <span class="badge text-bg-warning">Open</span>{% endif %}</p>
   </div>
   <div class="d-flex flex-wrap gap-2">
-    {% if session.user_id == current_user.id or current_user.is_admin %}
+    {% if can_edit %}
     <a class="btn btn-outline-secondary" href="{{ url_for('work.session_edit', session_id=session.id) }}">Edit</a>
+    {% endif %}
+    {% if can_delete_session %}
+    <form method="post" action="{{ url_for('work.session_delete', session_id=session.id) }}" class="d-inline" onsubmit="return confirm('Delete this session and all its tasks, income lines, and expense lines? This cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-outline-danger">Delete</button>
+    </form>
     {% endif %}
     <a class="btn btn-outline-primary" href="{{ url_for('work.sessions_list') }}">All sessions</a>
   </div>
@@ -27,9 +33,9 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   {% endif %}
   <dt class="col-sm-3">Hours</dt>
   <dd class="col-sm-9">{% if session.hours_worked is not none %}{{ session.hours_worked }}{% else %}—{% endif %}</dd>
-  <dt class="col-sm-3">Income</dt>
+  <dt class="col-sm-3">Income (total)</dt>
   <dd class="col-sm-9">{% if session.income is not none %}{{ session.income }}{% else %}—{% endif %}</dd>
-  <dt class="col-sm-3">Expenses</dt>
+  <dt class="col-sm-3">Expenses (total)</dt>
   <dd class="col-sm-9">{% if session.expenses is not none %}{{ session.expenses }}{% else %}—{% endif %}</dd>
   {% if session.notes %}
   <dt class="col-sm-3">Notes</dt>
@@ -37,7 +43,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   {% endif %}
 </dl>
 
-{% if session.end_time is none and (session.user_id == current_user.id or current_user.is_admin) %}
+{% if session.end_time is none and can_edit %}
 <form method="post" action="{{ url_for('work.session_stop', session_id=session.id) }}" class="card mb-4">
   <div class="card-body">
     <h2 class="h5 card-title">Stop session</h2>
@@ -68,14 +74,101 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 </script>
 {% endif %}
 
+<h2 class="h5 mb-0">Income lines</h2>
+<p class="text-muted small">Amounts are summed into <strong>Income (total)</strong> above (same idea as expense lines).</p>
+{% if income_items %}
+<ul class="list-group mb-3">
+  {% for e in income_items %}
+  <li class="list-group-item d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+      <strong>{{ e.amount }}</strong>
+      {% if e.description %}<span class="text-muted"> — {{ e.description }}</span>{% endif %}
+    </div>
+    {% if can_edit %}
+    <form method="post" action="{{ url_for('work.session_delete_income', session_id=session.id, income_id=e.id) }}" class="d-inline" onsubmit="return confirm('Remove this income line?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">No income lines yet.</p>
+{% endif %}
+{% if can_edit %}
+<form method="post" action="{{ url_for('work.session_add_income', session_id=session.id) }}" class="row g-2 mb-4 align-items-end">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="col-md-3">
+    <label class="form-label" for="inc_amount">Amount</label>
+    <input class="form-control" id="inc_amount" name="amount" type="text" inputmode="decimal" required placeholder="0.00">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="inc_desc">Description (optional)</label>
+    <input class="form-control" id="inc_desc" name="description" type="text" maxlength="500" placeholder="e.g. Invoice #123">
+  </div>
+  <div class="col-md-3">
+    <button type="submit" class="btn btn-outline-primary w-100">Add line</button>
+  </div>
+</form>
+{% endif %}
+
+<h2 class="h5 mb-0">Expense lines</h2>
+<p class="text-muted small">Amounts are summed into the session <strong>Expenses (total)</strong> above.</p>
+{% if expense_items %}
+<ul class="list-group mb-3">
+  {% for e in expense_items %}
+  <li class="list-group-item d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+      <strong>{{ e.amount }}</strong>
+      {% if e.description %}<span class="text-muted"> — {{ e.description }}</span>{% endif %}
+    </div>
+    {% if can_edit %}
+    <form method="post" action="{{ url_for('work.session_delete_expense', session_id=session.id, expense_id=e.id) }}" class="d-inline" onsubmit="return confirm('Remove this expense line?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">No expense lines yet.</p>
+{% endif %}
+{% if can_edit %}
+<form method="post" action="{{ url_for('work.session_add_expense', session_id=session.id) }}" class="row g-2 mb-4 align-items-end">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="col-md-3">
+    <label class="form-label" for="exp_amount">Amount</label>
+    <input class="form-control" id="exp_amount" name="amount" type="text" inputmode="decimal" required placeholder="0.00">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label" for="exp_desc">Description (optional)</label>
+    <input class="form-control" id="exp_desc" name="description" type="text" maxlength="500" placeholder="e.g. Software subscription">
+  </div>
+  <div class="col-md-3">
+    <button type="submit" class="btn btn-outline-primary w-100">Add line</button>
+  </div>
+</form>
+{% endif %}
+
 <h2 class="h5 mb-0">Tasks</h2>
 <p class="text-muted small">Who added each task is shown on the right.</p>
 {% if tasks %}
 <ul class="list-group mb-3">
   {% for t in tasks %}
-  <li class="list-group-item d-flex justify-content-between gap-2 flex-wrap">
+  <li class="list-group-item d-flex justify-content-between gap-2 flex-wrap align-items-center">
     <span>{{ t.task_text }}</span>
-    <span class="text-muted small">{% if t.added_by_username %}{{ t.added_by_username }}{% else %}—{% endif %}</span>
+    <span class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-muted small">{% if t.added_by_username %}{{ t.added_by_username }}{% else %}—{% endif %}</span>
+      {% if t.user_id == current_user.id or current_user.is_admin %}
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('work.task_edit', session_id=session.id, task_id=t.id) }}">Edit</a>
+      <form method="post" action="{{ url_for('work.task_delete', session_id=session.id, task_id=t.id) }}" class="d-inline" onsubmit="return confirm('Remove this task?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+      </form>
+      {% endif %}
+    </span>
   </li>
   {% endfor %}
 </ul>

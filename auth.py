@@ -153,6 +153,11 @@ class UserManager:
                 return False, "Failed to create user"
 
             user_id = result["id"]
+            execute_query(
+                "UPDATE tenants SET owner_user_id = %s WHERE id = %s",
+                (user_id, tenant_id),
+                fetch_all=False,
+            )
             log_security_event("user_created", user_id, {"email": email})
             payload = {"user_id": user_id, "id": user_id}
             if verification_token:

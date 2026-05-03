@@ -1,0 +1,105 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Reports — {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="mb-2">{% if mode == 'ei' %}Self-employment / EI summary{% else %}Work report{% endif %}</h1>
+<p class="text-muted mb-4">All figures are for <strong>this tenant only</strong> (same data; EI view uses documentation-oriented labels).</p>
+
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item">
+    <a class="nav-link {% if mode != 'ei' %}active{% endif %}" href="{{ url_for('work.reports', date_from=date_from, date_to=date_to, project=project_filter, mode='generic') }}">Generic</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if mode == 'ei' %}active{% endif %}" href="{{ url_for('work.reports', date_from=date_from, date_to=date_to, project=project_filter, mode='ei') }}">EI-oriented</a>
+  </li>
+</ul>
+
+<form class="row g-3 align-items-end mb-4" method="get" action="{{ url_for('work.reports') }}">
+  <input type="hidden" name="mode" value="{{ mode }}"/>
+  <div class="col-md-3">
+    <label class="form-label" for="date_from">From</label>
+    <input class="form-control" type="date" id="date_from" name="date_from" value="{{ date_from }}">
+  </div>
+  <div class="col-md-3">
+    <label class="form-label" for="date_to">To</label>
+    <input class="form-control" type="date" id="date_to" name="date_to" value="{{ date_to }}">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label" for="project">Project contains (optional)</label>
+    <input class="form-control" type="text" id="project" name="project" value="{{ project_filter }}" maxlength="200" placeholder="substring match">
+  </div>
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-primary w-100">Apply</button>
+  </div>
+</form>
+
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card"><div class="card-body">
+      <div class="text-muted small">{% if mode == 'ei' %}Hours worked{% else %}Total hours{% endif %}</div>
+      <div class="fs-4">{{ hours_sum }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card"><div class="card-body">
+      <div class="text-muted small">{% if mode == 'ei' %}Gross self-employment revenue{% else %}Total income{% endif %}</div>
+      <div class="fs-4">{{ income_sum }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card"><div class="card-body">
+      <div class="text-muted small">{% if mode == 'ei' %}Business expenses{% else %}Total expenses{% endif %}</div>
+      <div class="fs-4">{{ expenses_sum }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-3">
+    <div class="card"><div class="card-body">
+      <div class="text-muted small">{% if mode == 'ei' %}Net (revenue − expenses){% else %}Net (income − expenses){% endif %}</div>
+      <div class="fs-4">{{ net }}</div>
+    </div></div>
+  </div>
+</div>
+
+<p class="mb-2">
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('work.reports_export_csv', date_from=date_from, date_to=date_to, project=project_filter, kind='generic') }}">Download CSV (generic)</a>
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('work.reports_export_csv', date_from=date_from, date_to=date_to, project=project_filter, kind='ei') }}">Download CSV (EI labels)</a>
+</p>
+
+<h2 class="h5">Sessions in range</h2>
+{% if rows %}
+<div class="table-responsive">
+  <table class="table table-sm table-striped">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Project</th>
+        <th>Hours</th>
+        <th>Income</th>
+        <th>Expenses</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.work_date }}</td>
+        <td>{{ r.project }}</td>
+        <td>{% if r.hours_worked is not none %}{{ r.hours_worked }}{% else %}—{% endif %}</td>
+        <td>{% if r.income is not none %}{{ r.income }}{% else %}—{% endif %}</td>
+        <td>{% if r.expenses is not none %}{{ r.expenses }}{% else %}—{% endif %}</td>
+        <td><a href="{{ url_for('work.session_detail', session_id=r.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">No sessions in this range.</p>
+{% endif %}
+
+<p class="mt-4"><a href="{{ url_for('work.sessions_list') }}">Back to work sessions</a></p>
+{% endblock %}

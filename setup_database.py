@@ -50,11 +50,17 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS tenants (
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL DEFAULT 'Default',
+                owner_user_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """,
             fetch_all=False,
+        )
+        _ensure_column(
+            "tenants",
+            "owner_user_id",
+            "ALTER TABLE tenants ADD COLUMN owner_user_id INTEGER;",
         )
 
         execute_query(
@@ -193,6 +199,21 @@ def init_db() -> None:
 
         execute_query(
             """
+            UPDATE tenants t
+            SET owner_user_id = (
+                SELECT id FROM users
+                WHERE tenant_id = t.id AND is_admin = TRUE
+                ORDER BY id ASC
+                LIMIT 1
+            )
+            WHERE t.owner_user_id IS NULL
+              AND EXISTS (SELECT 1 FROM users WHERE tenant_id = t.id);
+            """,
+            fetch_all=False,
+        )
+
+        execute_query(
+            """
             CREATE TABLE IF NOT EXISTS work_sessions (
                 id SERIAL PRIMARY KEY,
                 tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -277,6 +298,28 @@ def init_db() -> None:
             """
             CREATE INDEX IF NOT EXISTS idx_work_expense_items_session
             ON work_expense_items (session_id);
+            """,
+            fetch_all=False,
+        )
+
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS work_income_items (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                session_id INTEGER NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+                amount NUMERIC(12,2) NOT NULL,
+                description TEXT NOT NULL DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_work_income_items_session
+            ON work_income_items (session_id);
             """,
             fetch_all=False,
         )

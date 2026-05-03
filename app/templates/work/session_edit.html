@@ -33,12 +33,14 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   </div>
   <div class="row g-3 mb-3">
     <div class="col-md-6">
-      <label class="form-label" for="income">Income</label>
-      <input class="form-control" type="text" id="income" name="income" inputmode="decimal" value="{% if session.income is not none %}{{ session.income }}{% endif %}">
+      <p class="mb-1"><strong>Income total (from lines)</strong></p>
+      <p class="mb-0 fs-5">{{ income_lines_total }}</p>
+      <div class="form-text">Edit <a href="{{ url_for('work.session_detail', session_id=session.id) }}">income lines</a> on the session page.</div>
     </div>
     <div class="col-md-6">
-      <label class="form-label" for="expenses">Expenses</label>
-      <input class="form-control" type="text" id="expenses" name="expenses" inputmode="decimal" value="{% if session.expenses is not none %}{{ session.expenses }}{% endif %}">
+      <p class="mb-1"><strong>Expenses total (from lines)</strong></p>
+      <p class="mb-0 fs-5">{{ expense_lines_total }}</p>
+      <div class="form-text">Edit <a href="{{ url_for('work.session_detail', session_id=session.id) }}">expense lines</a> on the session page.</div>
     </div>
   </div>
   <div class="mb-3">
