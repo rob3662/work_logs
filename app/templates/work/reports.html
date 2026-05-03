@@ -7,7 +7,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block title %}Reports — {{ app_name }}{% endblock %}
 {% block content %}
 <h1 class="mb-2">{% if mode == 'ei' %}Self-employment / EI summary{% else %}Work report{% endif %}</h1>
-<p class="text-muted mb-4">All figures are for <strong>this tenant only</strong> (same data; EI view uses documentation-oriented labels).</p>
+<p class="text-muted mb-4">{% if mode == 'ei' %}Hours and gross self-employment revenue for <strong>this workspace only</strong>. Weeks run Sunday-Saturday; the weekly table lists four weeks ending with the week of your <strong>To</strong> date (clipped to your range and project filter). Use the filters below, then <strong>Apply</strong>, to change what you see.{% else %}All figures are for <strong>this tenant only</strong> (same data; EI view uses documentation-oriented labels).{% endif %}</p>
 
 <ul class="nav nav-tabs mb-3">
   <li class="nav-item">
@@ -18,19 +18,47 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   </li>
 </ul>
 
+{% if mode == 'ei' and ei_weekly %}
+<h2 class="h5 mb-2">Weekly summary</h2>
+<p class="text-muted small mb-3">Each row is a Sunday-Saturday week. Amounts only count sessions whose work date falls in that week and in your From-To range (and project filter, if any). Change the range in the form below, then Apply.</p>
+<div class="table-responsive col-lg-8 mb-4">
+  <table class="table table-sm table-striped">
+    <thead>
+      <tr>
+        <th>Week (Sunday)</th>
+        <th>Hours worked</th>
+        <th>Gross self-employment revenue</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in ei_weekly %}
+      <tr>
+        <td>{{ w.week_sunday }}</td>
+        <td>{{ w.hours }}</td>
+        <td>{{ w.gross_income }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 <form class="row g-3 align-items-end mb-4" method="get" action="{{ url_for('work.reports') }}">
   <input type="hidden" name="mode" value="{{ mode }}"/>
   <div class="col-md-3">
     <label class="form-label" for="date_from">From</label>
-    <input class="form-control" type="date" id="date_from" name="date_from" value="{{ date_from }}">
+    <input class="form-control work-log-datepicker" type="text" id="date_from" name="date_from" value="{{ date_from }}" autocomplete="off" inputmode="none" placeholder="YYYY-MM-DD">
   </div>
   <div class="col-md-3">
     <label class="form-label" for="date_to">To</label>
-    <input class="form-control" type="date" id="date_to" name="date_to" value="{{ date_to }}">
+    <input class="form-control work-log-datepicker" type="text" id="date_to" name="date_to" value="{{ date_to }}" autocomplete="off" inputmode="none" placeholder="YYYY-MM-DD">
   </div>
   <div class="col-md-4">
     <label class="form-label" for="project">Project contains (optional)</label>
-    <input class="form-control" type="text" id="project" name="project" value="{{ project_filter }}" maxlength="200" placeholder="substring match">
+    <div class="input-group">
+      <input class="form-control" type="text" id="project" name="project" value="{{ project_filter }}" maxlength="200" placeholder="substring match">
+      <button type="button" class="btn btn-outline-secondary px-3" id="reports-clear-project" title="Clear project filter" aria-label="Clear project filter">&times;</button>
+    </div>
   </div>
   <div class="col-md-2">
     <button type="submit" class="btn btn-primary w-100">Apply</button>
@@ -38,35 +66,56 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 </form>
 
 <div class="row mb-4">
+  {% if mode == 'ei' %}
+  <div class="col-md-6">
+    <div class="card"><div class="card-body">
+      <div class="text-muted small">Hours worked (selected range)</div>
+      <div class="fs-4">{{ hours_sum }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card"><div class="card-body">
+      <div class="text-muted small">Gross self-employment revenue (selected range)</div>
+      <div class="fs-4">{{ income_sum }}</div>
+    </div></div>
+  </div>
+  {% else %}
   <div class="col-md-3">
     <div class="card"><div class="card-body">
-      <div class="text-muted small">{% if mode == 'ei' %}Hours worked{% else %}Total hours{% endif %}</div>
+      <div class="text-muted small">Total hours</div>
       <div class="fs-4">{{ hours_sum }}</div>
     </div></div>
   </div>
   <div class="col-md-3">
     <div class="card"><div class="card-body">
-      <div class="text-muted small">{% if mode == 'ei' %}Gross self-employment revenue{% else %}Total income{% endif %}</div>
+      <div class="text-muted small">Total income</div>
       <div class="fs-4">{{ income_sum }}</div>
     </div></div>
   </div>
   <div class="col-md-3">
     <div class="card"><div class="card-body">
-      <div class="text-muted small">{% if mode == 'ei' %}Business expenses{% else %}Total expenses{% endif %}</div>
+      <div class="text-muted small">Total expenses</div>
       <div class="fs-4">{{ expenses_sum }}</div>
     </div></div>
   </div>
   <div class="col-md-3">
     <div class="card"><div class="card-body">
-      <div class="text-muted small">{% if mode == 'ei' %}Net (revenue − expenses){% else %}Net (income − expenses){% endif %}</div>
+      <div class="text-muted small">Net (income − expenses)</div>
       <div class="fs-4">{{ net }}</div>
     </div></div>
   </div>
+  {% endif %}
 </div>
 
-<p class="mb-2">
-  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('work.reports_export_csv', date_from=date_from, date_to=date_to, project=project_filter, kind='generic') }}">Download CSV (generic)</a>
-  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('work.reports_export_csv', date_from=date_from, date_to=date_to, project=project_filter, kind='ei') }}">Download CSV (EI labels)</a>
+<p class="mb-2 d-flex flex-wrap gap-2">
+  {% if mode != 'ei' %}
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('work.reports_export_csv', date_from=date_from, date_to=date_to, project=project_filter, kind='generic') }}">Download CSV</a>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('work.reports_export_pdf', date_from=date_from, date_to=date_to, project=project_filter, kind='generic') }}">Download PDF</a>
+  {% endif %}
+  {% if mode == 'ei' %}
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('work.reports_export_csv', date_from=date_from, date_to=date_to, project=project_filter, kind='ei') }}">Download CSV</a>
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('work.reports_export_pdf', date_from=date_from, date_to=date_to, project=project_filter, kind='ei') }}">Download PDF</a>
+  {% endif %}
 </p>
 
 <h2 class="h5">Sessions in range</h2>
@@ -78,8 +127,8 @@ Unauthorized use, modification, or distribution is strictly prohibited.
         <th>Date</th>
         <th>Project</th>
         <th>Hours</th>
-        <th>Income</th>
-        <th>Expenses</th>
+        <th>{% if mode == 'ei' %}Gross revenue{% else %}Income{% endif %}</th>
+        {% if mode != 'ei' %}<th>Expenses</th>{% endif %}
         <th></th>
       </tr>
     </thead>
@@ -90,7 +139,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
         <td>{{ r.project }}</td>
         <td>{% if r.hours_worked is not none %}{{ r.hours_worked }}{% else %}—{% endif %}</td>
         <td>{% if r.income is not none %}{{ r.income }}{% else %}—{% endif %}</td>
-        <td>{% if r.expenses is not none %}{{ r.expenses }}{% else %}—{% endif %}</td>
+        {% if mode != 'ei' %}<td>{% if r.expenses is not none %}{{ r.expenses }}{% else %}—{% endif %}</td>{% endif %}
         <td><a href="{{ url_for('work.session_detail', session_id=r.id) }}">View</a></td>
       </tr>
       {% endfor %}
@@ -102,4 +151,15 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% endif %}
 
 <p class="mt-4"><a href="{{ url_for('work.sessions_list') }}">Back to work sessions</a></p>
+<script>
+  (function () {
+    var btn = document.getElementById('reports-clear-project');
+    var inp = document.getElementById('project');
+    if (!btn || !inp || !inp.form) return;
+    btn.addEventListener('click', function () {
+      inp.value = '';
+      inp.form.submit();
+    });
+  })();
+</script>
 {% endblock %}

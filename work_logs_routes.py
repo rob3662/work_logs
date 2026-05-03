@@ -10,11 +10,16 @@ import csv
 import io
 import logging
 import os
-from datetime import date, datetime, time as time_type
+from datetime import date, datetime, time as time_type, timedelta
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from xml.sax.saxutils import escape
 
 from database import execute_query
 from email_service import send_template_email
@@ -54,6 +59,14 @@ def _hours_from_times(d: date, start_t: time_type, end_t: time_type) -> Decimal:
     if secs < 0:
         secs = 0
     return Decimal(str(round(secs / 3600.0, 2)))
+
+
+def _end_time_from_start_plus_hours(work_date: date, start_t: time_type, hours: Decimal) -> time_type:
+    """Clock time after adding fractional hours to start on work_date (may cross midnight)."""
+    start_dt = datetime.combine(work_date, start_t)
+    seconds = float(hours) * 3600.0
+    end_dt = start_dt + timedelta(seconds=seconds)
+    return end_dt.time()
 
 
 def _optional_decimal(s: str) -> Decimal | None:
@@ -237,13 +250,21 @@ def _report_date_defaults():
     return start, today
 
 
+def _report_generic_default_from() -> date:
+    """Sunday on or before (today - 28 days); for generic report default range (weeks start Sunday)."""
+    today = date.today()
+    anchor = today - timedelta(days=28)
+    days_since_sunday = (anchor.weekday() + 1) % 7
+    return anchor - timedelta(days=days_since_sunday)
+
+
 def _fetch_report_rows(tenant_id: int, date_from: date, date_to: date, project_filter: str):
     pf = (project_filter or "").strip()
     if pf:
         return execute_query(
             """
             SELECT id, project, work_date, start_time, end_time, hours_worked,
-                   income, expenses, notes
+                   income, expenses, notes, created_at
             FROM work_sessions
             WHERE tenant_id = %s
               AND work_date >= %s AND work_date <= %s
@@ -256,7 +277,7 @@ def _fetch_report_rows(tenant_id: int, date_from: date, date_to: date, project_f
     return execute_query(
         """
         SELECT id, project, work_date, start_time, end_time, hours_worked,
-               income, expenses, notes
+               income, expenses, notes, created_at
         FROM work_sessions
         WHERE tenant_id = %s
           AND work_date >= %s AND work_date <= %s
@@ -299,6 +320,56 @@ def _fetch_report_totals(tenant_id: int, date_from: date, date_to: date, project
             fetch_one=True,
         )
     return row or {}
+
+
+def _ei_weekly_summary(tenant_id: int, date_from: date, date_to: date, project_filter: str) -> list:
+    """
+    Four Sunday-based weeks (Sun–Sat) ending at the week that contains date_to.
+    Each row sums hours and income for sessions in that week intersected with [date_from, date_to].
+    Rows are ordered oldest week first.
+    """
+    pf = (project_filter or "").strip()
+    anchor_sunday = date_to - timedelta((date_to.weekday() + 1) % 7)
+    out = []
+    for weeks_back in (3, 2, 1, 0):
+        ws = anchor_sunday - timedelta(weeks=weeks_back)
+        we = ws + timedelta(days=6)
+        eff_from = max(ws, date_from)
+        eff_to = min(we, date_to)
+        if eff_from > eff_to:
+            h = Decimal("0")
+            inc = Decimal("0")
+        elif pf:
+            row = execute_query(
+                """
+                SELECT COALESCE(SUM(hours_worked), 0) AS h,
+                       COALESCE(SUM(income), 0) AS inc
+                FROM work_sessions
+                WHERE tenant_id = %s
+                  AND work_date >= %s AND work_date <= %s
+                  AND project ILIKE %s
+                """,
+                (tenant_id, eff_from, eff_to, f"%{pf}%"),
+                fetch_one=True,
+            )
+            h = (row or {}).get("h") or Decimal("0")
+            inc = (row or {}).get("inc") or Decimal("0")
+        else:
+            row = execute_query(
+                """
+                SELECT COALESCE(SUM(hours_worked), 0) AS h,
+                       COALESCE(SUM(income), 0) AS inc
+                FROM work_sessions
+                WHERE tenant_id = %s
+                  AND work_date >= %s AND work_date <= %s
+                """,
+                (tenant_id, eff_from, eff_to),
+                fetch_one=True,
+            )
+            h = (row or {}).get("h") or Decimal("0")
+            inc = (row or {}).get("inc") or Decimal("0")
+        out.append({"week_sunday": ws, "hours": h, "gross_income": inc})
+    return out
 
 
 @work_bp.route("/sessions")
@@ -447,19 +518,27 @@ def session_stop(session_id: int):
         flash("This session is already closed.", "info")
         return redirect(url_for("work.session_detail", session_id=session_id))
 
-    end_time = _parse_time(request.form.get("end_time", ""))
-    if not end_time:
-        flash("End time is required.", "error")
-        return redirect(url_for("work.session_detail", session_id=session_id))
-
     hours_override = _optional_decimal(request.form.get("hours_worked", ""))
+    end_time = _parse_time(request.form.get("end_time", ""))
+
     work_date = sess["work_date"]
     if isinstance(work_date, str):
         work_date = _parse_date(work_date)
     start_t = sess["start_time"]
-    if hours_override is not None and hours_override >= 0:
+    if not work_date or not start_t:
+        flash("Session is missing work date or start time.", "error")
+        return redirect(url_for("work.session_detail", session_id=session_id))
+
+    if hours_override is not None:
+        if hours_override < 0:
+            flash("Hours must be zero or positive.", "error")
+            return redirect(url_for("work.session_detail", session_id=session_id))
         hours_worked = hours_override
+        end_time = _end_time_from_start_plus_hours(work_date, start_t, hours_worked)
     else:
+        if not end_time:
+            flash("End time is required, or enter hours under “Hours (optional override)”.", "error")
+            return redirect(url_for("work.session_detail", session_id=session_id))
         hours_worked = _hours_from_times(work_date, start_t, end_time)
 
     execute_query(
@@ -789,7 +868,12 @@ def session_edit(session_id: int):
         end_time = _parse_time(request.form.get("end_time", ""))
         notes = sanitize_input(request.form.get("notes", ""), max_length=8000)
         hours_worked = _optional_decimal(request.form.get("hours_worked", ""))
-        if end_time and hours_worked is None:
+        if hours_worked is not None:
+            if hours_worked < 0:
+                flash("Hours must be zero or positive.", "error")
+                return render_template("work/session_edit.html", **edit_ctx)
+            end_time = _end_time_from_start_plus_hours(work_date, start_time, hours_worked)
+        elif end_time:
             hours_worked = _hours_from_times(work_date, start_time, end_time)
 
         prev_end = sess.get("end_time")
@@ -834,16 +918,18 @@ def session_edit(session_id: int):
 @work_bp.route("/reports")
 @login_required
 def reports():
-    default_from, default_to = _report_date_defaults()
+    month_start, default_to = _report_date_defaults()
+    mode = (request.args.get("mode") or "generic").strip().lower()
+    if mode not in ("generic", "ei"):
+        mode = "generic"
+    default_from = month_start if mode == "ei" else _report_generic_default_from()
     date_from = _parse_date(request.args.get("date_from", "")) or default_from
     date_to = _parse_date(request.args.get("date_to", "")) or default_to
     if date_from > date_to:
         flash("Start date must be on or before end date.", "warning")
+        default_from = month_start if mode == "ei" else _report_generic_default_from()
         date_from, date_to = default_from, default_to
     project_filter = sanitize_input(request.args.get("project", "").strip(), max_length=200)
-    mode = (request.args.get("mode") or "generic").strip().lower()
-    if mode not in ("generic", "ei"):
-        mode = "generic"
     tid = current_user.tenant_id
     rows = _fetch_report_rows(tid, date_from, date_to, project_filter)
     totals = _fetch_report_totals(tid, date_from, date_to, project_filter)
@@ -851,6 +937,11 @@ def reports():
     income_sum = totals.get("income_sum") or Decimal("0")
     expenses_sum = totals.get("expenses_sum") or Decimal("0")
     net = income_sum - expenses_sum
+    ei_weekly = (
+        _ei_weekly_summary(tid, date_from, date_to, project_filter)
+        if mode == "ei"
+        else None
+    )
     return render_template(
         "work/reports.html",
         mode=mode,
@@ -862,21 +953,228 @@ def reports():
         income_sum=income_sum,
         expenses_sum=expenses_sum,
         net=net,
+        ei_weekly=ei_weekly,
     )
+
+
+def _reports_pdf_cell_str(v, max_len: int = 600) -> str:
+    if v is None:
+        return "-"
+    t = str(v).replace("\r", " ").replace("\n", " ")
+    if len(t) > max_len:
+        t = t[: max_len - 3] + "..."
+    return t.encode("latin-1", "xmlcharrefreplace").decode("latin-1")
+
+
+def _reports_pdf_created_str(created) -> str:
+    if created is None:
+        return "-"
+    if hasattr(created, "isoformat"):
+        return _reports_pdf_cell_str(
+            created.isoformat(sep=" ", timespec="seconds"),
+            max_len=64,
+        )
+    return _reports_pdf_cell_str(created, max_len=64)
+
+
+def _reports_pdf_build_story(
+    report_kind: str,
+    date_from: date,
+    date_to: date,
+    project_filter: str,
+    rows: list,
+    totals: dict,
+    ei_weekly: list | None = None,
+) -> list:
+    styles = getSampleStyleSheet()
+    title_txt = (
+        "Work report (generic)"
+        if report_kind == "generic"
+        else "Self-employment / EI summary"
+    )
+    story = [
+        Paragraph(escape(title_txt), styles["Title"]),
+        Spacer(1, 8),
+        Paragraph(escape(f"Range: {date_from} through {date_to}"), styles["Normal"]),
+    ]
+    if project_filter:
+        story.append(
+            Paragraph(
+                escape(f"Project filter (contains): {project_filter}"),
+                styles["Normal"],
+            )
+        )
+    story.append(Spacer(1, 16))
+
+    hours_sum = totals.get("hours_sum") or Decimal("0")
+    income_sum = totals.get("income_sum") or Decimal("0")
+    expenses_sum = totals.get("expenses_sum") or Decimal("0")
+    net = (totals.get("income_sum") or Decimal("0")) - (totals.get("expenses_sum") or Decimal("0"))
+
+    if report_kind == "ei" and ei_weekly:
+        story.append(
+            Paragraph(
+                escape("Weekly summary"),
+                styles["Heading2"],
+            )
+        )
+        story.append(Spacer(1, 6))
+        wdata = [
+            [
+                "Week (Sunday)",
+                "Hours worked",
+                "Gross self-employment revenue",
+            ]
+        ]
+        for wk in ei_weekly:
+            wdata.append(
+                [
+                    str(wk["week_sunday"]),
+                    str(wk["hours"]),
+                    str(wk["gross_income"]),
+                ]
+            )
+        wtbl = Table(wdata, repeatRows=1, colWidths=[120, 120, 240])
+        wtbl.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8e8e8")),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
+        story.append(wtbl)
+        story.append(Spacer(1, 20))
+
+    if report_kind == "ei":
+        summary_labels = ["Hours worked (range)", "Gross self-employment revenue (range)"]
+        summary_vals = [str(hours_sum), str(income_sum)]
+    else:
+        summary_labels = [
+            "Total hours",
+            "Total income",
+            "Total expenses",
+            "Net (income - expenses)",
+        ]
+        summary_vals = [str(hours_sum), str(income_sum), str(expenses_sum), str(net)]
+    n_sum = len(summary_labels)
+    summary_table = Table(
+        [[summary_labels[i], summary_vals[i]] for i in range(n_sum)],
+        colWidths=[240, 140],
+    )
+    summary_table.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f0f0f0")),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
+    story.append(Paragraph(escape("Summary"), styles["Heading2"]))
+    story.append(Spacer(1, 6))
+    story.append(summary_table)
+    story.append(Spacer(1, 20))
+
+    if report_kind == "ei":
+        hdr = [
+            "id",
+            "project",
+            "work date",
+            "start",
+            "end",
+            "hours",
+            "gross income",
+            "notes",
+            "created",
+        ]
+        data = [hdr]
+        for r in rows:
+            data.append(
+                [
+                    _reports_pdf_cell_str(r.get("id"), max_len=20),
+                    _reports_pdf_cell_str(r.get("project"), max_len=100),
+                    _reports_pdf_cell_str(r.get("work_date")),
+                    _reports_pdf_cell_str(r.get("start_time")),
+                    _reports_pdf_cell_str(r.get("end_time")),
+                    _reports_pdf_cell_str(r.get("hours_worked")),
+                    _reports_pdf_cell_str(r.get("income")),
+                    _reports_pdf_cell_str(r.get("notes"), max_len=480),
+                    _reports_pdf_created_str(r.get("created_at")),
+                ]
+            )
+        col_widths = [32, 100, 56, 44, 44, 40, 52, 174, 118]
+    else:
+        hdr = [
+            "id",
+            "project",
+            "work date",
+            "start",
+            "end",
+            "hours",
+            "income",
+            "expenses",
+            "notes",
+            "created",
+        ]
+        data = [hdr]
+        for r in rows:
+            data.append(
+                [
+                    _reports_pdf_cell_str(r.get("id"), max_len=20),
+                    _reports_pdf_cell_str(r.get("project"), max_len=100),
+                    _reports_pdf_cell_str(r.get("work_date")),
+                    _reports_pdf_cell_str(r.get("start_time")),
+                    _reports_pdf_cell_str(r.get("end_time")),
+                    _reports_pdf_cell_str(r.get("hours_worked")),
+                    _reports_pdf_cell_str(r.get("income")),
+                    _reports_pdf_cell_str(r.get("expenses")),
+                    _reports_pdf_cell_str(r.get("notes"), max_len=400),
+                    _reports_pdf_created_str(r.get("created_at")),
+                ]
+            )
+        col_widths = [32, 100, 56, 44, 44, 40, 48, 48, 126, 110]
+
+    tbl = Table(data, repeatRows=1, colWidths=col_widths)
+    tbl.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8e8e8")),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    story.append(Paragraph(escape("Sessions in range"), styles["Heading2"]))
+    story.append(Spacer(1, 6))
+    story.append(tbl)
+    return story
 
 
 @work_bp.route("/reports/export.csv")
 @login_required
 def reports_export_csv():
-    default_from, default_to = _report_date_defaults()
-    date_from = _parse_date(request.args.get("date_from", "")) or default_from
-    date_to = _parse_date(request.args.get("date_to", "")) or default_to
-    if date_from > date_to:
-        date_from, date_to = default_from, default_to
+    month_start, default_to = _report_date_defaults()
     project_filter = sanitize_input(request.args.get("project", "").strip(), max_length=200)
     report_kind = (request.args.get("kind") or "generic").strip().lower()
     if report_kind not in ("generic", "ei"):
         report_kind = "generic"
+    default_from = month_start if report_kind == "ei" else _report_generic_default_from()
+    date_from = _parse_date(request.args.get("date_from", "")) or default_from
+    date_to = _parse_date(request.args.get("date_to", "")) or default_to
+    if date_from > date_to:
+        default_from = month_start if report_kind == "ei" else _report_generic_default_from()
+        date_from, date_to = default_from, default_to
     tid = current_user.tenant_id
     rows = _fetch_report_rows(tid, date_from, date_to, project_filter)
     totals = _fetch_report_totals(tid, date_from, date_to, project_filter)
@@ -893,24 +1191,58 @@ def reports_export_csv():
     if project_filter:
         w.writerow(["project_filter", project_filter])
     w.writerow([])
-    w.writerow(
-        [
-            "total_hours",
-            str(totals.get("hours_sum") or 0),
-            "total_income",
-            str(totals.get("income_sum") or 0),
-            "total_expenses",
-            str(totals.get("expenses_sum") or 0),
-            "net_income",
-            str(
-                (totals.get("income_sum") or Decimal("0"))
-                - (totals.get("expenses_sum") or Decimal("0"))
-            ),
-        ]
-    )
+    if report_kind == "ei":
+        w.writerow(
+            [
+                "total_hours",
+                str(totals.get("hours_sum") or 0),
+                "total_gross_self_employment_income",
+                str(totals.get("income_sum") or 0),
+            ]
+        )
+    else:
+        w.writerow(
+            [
+                "total_hours",
+                str(totals.get("hours_sum") or 0),
+                "total_income",
+                str(totals.get("income_sum") or 0),
+                "total_expenses",
+                str(totals.get("expenses_sum") or 0),
+                "net_income",
+                str(
+                    (totals.get("income_sum") or Decimal("0"))
+                    - (totals.get("expenses_sum") or Decimal("0"))
+                ),
+            ]
+        )
     w.writerow([])
-    w.writerow(
-        [
+    if report_kind == "ei":
+        ei_weekly_csv = _ei_weekly_summary(tid, date_from, date_to, project_filter)
+        w.writerow(["weekly_summary_sun_sat_weeks"])
+        w.writerow(
+            [
+                "week_sunday",
+                "hours_worked",
+                "gross_self_employment_income",
+            ]
+        )
+        for wk in ei_weekly_csv:
+            w.writerow([wk["week_sunday"], wk["hours"], wk["gross_income"]])
+        w.writerow([])
+        detail_header = [
+            "id",
+            "project",
+            "work_date",
+            "start_time",
+            "end_time",
+            "hours_worked",
+            "gross_self_employment_income",
+            "notes",
+            "created_at",
+        ]
+    else:
+        detail_header = [
             "id",
             "project",
             "work_date",
@@ -920,27 +1252,102 @@ def reports_export_csv():
             "income",
             "expenses",
             "notes",
+            "created_at",
         ]
-    )
+    w.writerow(detail_header)
     for r in rows:
-        w.writerow(
-            [
-                r.get("id"),
-                r.get("project"),
-                r.get("work_date"),
-                r.get("start_time"),
-                r.get("end_time"),
-                r.get("hours_worked"),
-                r.get("income"),
-                r.get("expenses"),
-                (r.get("notes") or "").replace("\n", " ").replace("\r", " ")[:2000],
-            ]
-        )
+        created = r.get("created_at")
+        if created is not None and hasattr(created, "isoformat"):
+            created_cell = created.isoformat(sep=" ", timespec="seconds")
+        else:
+            created_cell = created if created is None else str(created)
+        notes_cell = (r.get("notes") or "").replace("\n", " ").replace("\r", " ")[:2000]
+        if report_kind == "ei":
+            w.writerow(
+                [
+                    r.get("id"),
+                    r.get("project"),
+                    r.get("work_date"),
+                    r.get("start_time"),
+                    r.get("end_time"),
+                    r.get("hours_worked"),
+                    r.get("income"),
+                    notes_cell,
+                    created_cell,
+                ]
+            )
+        else:
+            w.writerow(
+                [
+                    r.get("id"),
+                    r.get("project"),
+                    r.get("work_date"),
+                    r.get("start_time"),
+                    r.get("end_time"),
+                    r.get("hours_worked"),
+                    r.get("income"),
+                    r.get("expenses"),
+                    notes_cell,
+                    created_cell,
+                ]
+            )
 
     filename = f"work-report-{report_kind}-{date_from}-to-{date_to}.csv"
     return Response(
         buf.getvalue(),
         mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@work_bp.route("/reports/export.pdf")
+@login_required
+@rate_limit("30 per minute")
+def reports_export_pdf():
+    month_start, default_to = _report_date_defaults()
+    project_filter = sanitize_input(request.args.get("project", "").strip(), max_length=200)
+    report_kind = (request.args.get("kind") or "generic").strip().lower()
+    if report_kind not in ("generic", "ei"):
+        report_kind = "generic"
+    default_from = month_start if report_kind == "ei" else _report_generic_default_from()
+    date_from = _parse_date(request.args.get("date_from", "")) or default_from
+    date_to = _parse_date(request.args.get("date_to", "")) or default_to
+    if date_from > date_to:
+        default_from = month_start if report_kind == "ei" else _report_generic_default_from()
+        date_from, date_to = default_from, default_to
+    tid = current_user.tenant_id
+    rows = _fetch_report_rows(tid, date_from, date_to, project_filter)
+    totals = _fetch_report_totals(tid, date_from, date_to, project_filter)
+    ei_weekly_pdf = (
+        _ei_weekly_summary(tid, date_from, date_to, project_filter)
+        if report_kind == "ei"
+        else None
+    )
+    story = _reports_pdf_build_story(
+        report_kind,
+        date_from,
+        date_to,
+        project_filter,
+        rows,
+        totals,
+        ei_weekly_pdf,
+    )
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=landscape(letter),
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=42,
+        bottomMargin=42,
+        title="Work report",
+    )
+    doc.build(story)
+    pdf_bytes = buf.getvalue()
+    filename = f"work-report-{report_kind}-{date_from}-to-{date_to}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

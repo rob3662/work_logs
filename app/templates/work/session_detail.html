@@ -51,16 +51,17 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <div class="row g-3 align-items-end">
       <div class="col-md-4">
         <label class="form-label" for="end_time">End time</label>
-        <input class="form-control" type="time" id="end_time" name="end_time" required>
+        <input class="form-control" type="time" id="end_time" name="end_time">
       </div>
       <div class="col-md-4">
         <label class="form-label" for="hours_worked">Hours (optional override)</label>
         <input class="form-control" type="text" name="hours_worked" id="hours_worked" inputmode="decimal" placeholder="Auto from start/end">
       </div>
       <div class="col-md-4">
-        <button type="submit" class="btn btn-primary">Stop</button>
+        <button type="submit" class="btn btn-primary w-100">Stop</button>
       </div>
     </div>
+    <p class="form-text small mb-0 mt-2">If you enter an hours override, end time is computed from start + hours and the End time field is ignored.</p>
   </div>
 </form>
 <script>
