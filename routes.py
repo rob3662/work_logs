@@ -25,6 +25,7 @@ from database import execute_query
 from security import rate_limit, log_security_event, sanitize_input, validate_email
 from auth import UserManager
 from email_service import send_template_email, send_registration_verified_notice
+from invites import complete_invite_signup, invite_row_by_token
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,44 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
+@auth_bp.route("/accept-invite/<token>", methods=["GET", "POST"])
+@rate_limit("20 per minute")
+def accept_team_invite(token):
+    inv = invite_row_by_token(token)
+    if request.method == "GET":
+        if not inv:
+            flash("This invitation link is invalid or has expired.", "error")
+            return redirect(url_for("auth.login"))
+        return render_template("auth/accept_team_invite.html", invite=inv)
+
+    if not inv:
+        flash("This invitation link is invalid or has expired.", "error")
+        return redirect(url_for("auth.login"))
+
+    username = sanitize_input(request.form.get("username", "").strip())
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    if not username or len(username) < 3:
+        flash("Username must be at least 3 characters long.", "error")
+        return render_template("auth/accept_team_invite.html", invite=inv)
+
+    if not password or len(password) < 8:
+        flash("Password must be at least 8 characters long.", "error")
+        return render_template("auth/accept_team_invite.html", invite=inv)
+
+    if password != confirm_password:
+        flash("Passwords do not match.", "error")
+        return render_template("auth/accept_team_invite.html", invite=inv)
+
+    ok, msg = complete_invite_signup(token, username, password)
+    if ok:
+        flash(msg, "success")
+        return redirect(url_for("auth.login"))
+    flash(msg, "error")
+    return render_template("auth/accept_team_invite.html", invite=inv)
+
+
 @auth_bp.route("/verify/<int:user_id>/<token>")
 def verify_email(user_id, token):
     success, message, newly_verified = UserManager.verify_email(user_id, token)
@@ -239,10 +278,13 @@ def dashboard():
     try:
         recent_sessions = execute_query(
             """
-            SELECT id, project, work_date, start_time, end_time, hours_worked, income, expenses
-            FROM work_sessions
-            WHERE tenant_id = %s
-            ORDER BY work_date DESC, id DESC
+            SELECT ws.id, ws.project, ws.work_date, ws.start_time, ws.end_time,
+                   ws.hours_worked, ws.income, ws.expenses,
+                   u.username AS started_by_username
+            FROM work_sessions ws
+            LEFT JOIN users u ON u.id = ws.user_id AND u.tenant_id = ws.tenant_id
+            WHERE ws.tenant_id = %s
+            ORDER BY ws.work_date DESC, ws.id DESC
             LIMIT 8
             """,
             (current_user.tenant_id,),

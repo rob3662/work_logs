@@ -6,28 +6,34 @@ Greenfield **work_logs** product on the existing **containerized Flask template*
 
 Production URL: **https://logs.brakesystems.ca** (already deployed). Implement incrementally; test as you go.
 
+### Recently shipped (for context)
+
+- Per-tenant registration (new `tenants` row per signup), global email/username uniqueness, **`is_site_admin`** vs tenant **`is_admin`**, `/admin` only for site admins.
+- **`work_sessions`**, **`work_tasks`**, **`work_expense_items`** (+ `user_id` on sessions for starter, **`ended_by_user_id`** when stopped, **`user_id`** on tasks for who added each task).
+- **`/work`** session list, start, detail, stop, edit; tasks add with attribution; dashboard recent sessions + **Started by** column.
+- **`tenant_invites`**: `/work/team` (invite/revoke), **`/auth/accept-invite/<token>`**, email template; optional **`TENANT_INVITE_EXPIRES_DAYS`** (default 7).
+
 ---
 
 ## Phase 1: Foundation (template + schema)
 
 ### 1.1 Baseline
 
-- [ ] Confirm `.env` / PostgreSQL connectivity for local and server (template already in use).
-- [ ] Document any work_logs-specific env vars as they are added.
+- [x] Confirm `.env` / PostgreSQL connectivity for local and server (template already in use).
+- [ ] Document work_logs-specific env vars in one place (e.g. `TENANT_INVITE_EXPIRES_DAYS`, `APP_NAME`, Mailgun/SMTP as used by this app).
 
 ### 1.2 Database — work log tables
 
-- [ ] Add idempotent `CREATE TABLE` / `_ensure_column` steps in `setup_database.py` for tenant-scoped tables (e.g. `work_sessions`, `work_tasks`, `work_expense_items`—final names to match code).
-- [ ] Every new table: `id`, `tenant_id` → `tenants(id)`, `created_at`, `updated_at`, FKs with sensible `ON DELETE`.
-- [ ] Link sessions to `users` as needed (e.g. `user_id` for creator or logger); always filter by `tenant_id`.
-- [ ] Smoke-test `init_db()` on empty DB and on existing production-shaped DB.
+- [x] Idempotent `CREATE TABLE` / `_ensure_column` in `setup_database.py` for `work_sessions`, `work_tasks`, `work_expense_items`, `tenant_invites`.
+- [x] Tenant-scoped tables with `tenant_id`, timestamps, FKs; sessions and tasks linked to `users` where needed.
+- [x] Smoke-test path: `init_db()` on app boot (file lock); re-run safe on upgrades.
 
 ### 1.3 Auth / tenancy (extend template)
 
-- [ ] Clarify and implement **tenant owner** vs **invited member** (roles, permissions).
-- [ ] **Invite flow:** create invite token or email link, accept invite → user attached to correct `tenant_id`.
-- [ ] Ensure new registrations create a **new tenant** (solo owner) unless accepting an invite.
-- [ ] Rate-limit and log security-sensitive actions (`security_events` where appropriate).
+- [x] Tenant owner vs invited member: owner **`is_admin`** on tenant; invitees created without admin; **`is_site_admin`** only for global `/admin`.
+- [x] Invite flow: token (hashed at rest), email link, accept → **`create_user_in_existing_tenant`** on correct `tenant_id`.
+- [x] New self-serve registrations create a **new tenant**; invites attach to **existing** tenant.
+- [x] Rate limits + **`security_events`** on invite create/accept/revoke and related auth events.
 
 ---
 
@@ -35,23 +41,25 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 
 ### 2.1 Application wiring
 
-- [ ] Register blueprints or routes for work log URLs; keep patterns consistent with `routes.py` / `auth.py`.
-- [ ] Enforce login + `tenant_id` on all work log queries.
+- [x] Work blueprint (`work_logs_routes.py`) registered from `app/app.py`.
+- [x] Login required + **`tenant_id`** scoping on work log queries.
 
 ### 2.2 Session CRUD
 
-- [ ] Start / stop / edit / delete work sessions (validation, CSRF).
-- [ ] Income and optional expense totals on session; optional expense line items.
-- [ ] Project field and date/time or duration rules.
+- [x] Start / stop / edit sessions (CSRF, validation, rate limits).
+- [ ] **Delete** session (with confirmation and permission rules).
+- [x] Income / expense totals on session row.
+- [ ] **`work_expense_items`** UI (table exists; no add/list/edit in app yet).
 
 ### 2.3 Task CRUD
 
-- [ ] Tasks linked to `session_id` + `tenant_id`; edit/delete rules.
+- [x] Add tasks linked to `session_id` + `tenant_id`; store **`user_id`** (who added).
+- [ ] Edit / delete tasks (and permission rules).
 
 ### 2.4 Reporting
 
 - [ ] **Generic:** aggregates by date range and project; hours, income, expenses, net; CSV export.
-- [ ] **EI-oriented:** dedicated report(s) and/or export labels aimed at self-employment / EI documentation (data is still “all rows in this tenant”).
+- [ ] **EI-oriented:** dedicated report(s) and/or export labels for self-employment / EI documentation (same tenant rows).
 - [ ] Optional: simple charts for hours and money over time.
 
 ---
@@ -60,30 +68,34 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 
 ### 3.1 Auth pages
 
-- [ ] Reuse/adjust template login, register, forgot/reset password for work_logs copy/branding if needed.
+- [x] Login, register, forgot/reset (template); **accept team invite** page.
+- [ ] Optional branding/copy pass for **work_logs** specifically.
 
 ### 3.2 Dashboard
 
-- [ ] Summary cards or tables: hours, income, expenses; filters (date range, project).
-- [ ] Quick links: start session / active session (if applicable).
+- [x] Recent sessions table + quick links (start session, work log).
+- [ ] Summary cards: hours / income / expenses for a chosen period; filters (date range, project).
 
 ### 3.3 Sessions UI
 
-- [ ] List view with filters; detail view; edit/delete with confirmation.
-- [ ] No work-type column or filter.
+- [x] List and detail views; edit; **Started by** / **Stopped by** on detail; list + dashboard show starter.
+- [ ] List **filters** (date range, project).
+- [ ] **Delete** session with confirmation.
 
 ### 3.4 Tasks UI
 
-- [ ] Per-session tasks: add, edit, delete (inline or on detail page).
+- [x] Add tasks on session detail; show **who added** each task.
+- [ ] Edit / delete task actions.
 
 ### 3.5 Reports UI
 
-- [ ] Reports page: **Generic** section and **EI-oriented** section (or tabs).
+- [ ] Reports page: **Generic** and **EI-oriented** sections (or tabs).
 - [ ] CSV download; print-friendly optional.
 
 ### 3.6 Tenant admin / invites
 
-- [ ] UI for owner: list pending invites, invite by email, revoke; list users in tenant (within privacy constraints).
+- [x] Invite by email, list invites (with status), revoke pending.
+- [ ] Optional: **team roster** (list users in tenant, roles) without over-exposing emails.
 
 ---
 
@@ -111,9 +123,9 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 
 ## Phase 7: Testing
 
-- [ ] Unit/integration tests for session/task/report endpoints and `tenant_id` isolation.
-- [ ] Manual UAT: owner + invited user on same tenant; two separate tenants (simulate personal vs business accounts).
-- [ ] Verify generic and EI report numbers match underlying rows.
+- [ ] Unit/integration tests for session/task endpoints and `tenant_id` isolation.
+- [x] Manual smoke: invites + sessions (keep repeating after major changes).
+- [ ] Verify generic and EI report numbers once reporting exists.
 
 ---
 
@@ -128,8 +140,8 @@ Production URL: **https://logs.brakesystems.ca** (already deployed). Implement i
 
 ## Success criteria
 
-- [ ] Tenant owner can run full session/task/expense workflow.
-- [ ] Invited users can participate per defined permissions.
+- [x] Tenant owner can run core session + task workflow; invitees can join and use the same tenant data.
+- [ ] Full expense line items + reporting + CSV.
 - [ ] Generic and EI-oriented reporting and export available.
-- [ ] No work-type field; separation only by account/tenant.
-- [ ] Deployed and usable at **logs.brakesystems.ca** with stable PostgreSQL schema upgrades via `init_db()`.
+- [x] No work-type field; separation only by account/tenant.
+- [x] Deployed at **logs.brakesystems.ca** with schema upgrades via **`init_db()`** (ongoing: add new guarded DDL as features land).

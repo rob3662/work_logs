@@ -7,6 +7,7 @@
 """Work log routes: tenant-scoped sessions and tasks."""
 
 import logging
+import os
 from datetime import date, datetime, time as time_type
 from decimal import Decimal, InvalidOperation
 
@@ -14,6 +15,8 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from database import execute_query
+from email_service import send_template_email
+from invites import create_invite, list_invites_for_tenant, revoke_invite
 from security import rate_limit, sanitize_input
 
 logger = logging.getLogger(__name__)
@@ -85,15 +88,33 @@ def _active_session_for_user(tenant_id: int, user_id: int):
     )
 
 
+def _username_for_user(tenant_id: int, user_id) -> str | None:
+    if user_id is None:
+        return None
+    row = execute_query(
+        """
+        SELECT username FROM users
+        WHERE id = %s AND tenant_id = %s
+        LIMIT 1
+        """,
+        (user_id, tenant_id),
+        fetch_one=True,
+    )
+    return (row or {}).get("username")
+
+
 @work_bp.route("/sessions")
 @login_required
 def sessions_list():
     rows = execute_query(
         """
-        SELECT id, project, work_date, start_time, end_time, hours_worked, income, expenses, user_id
-        FROM work_sessions
-        WHERE tenant_id = %s
-        ORDER BY work_date DESC, start_time DESC, id DESC
+        SELECT ws.id, ws.project, ws.work_date, ws.start_time, ws.end_time,
+               ws.hours_worked, ws.income, ws.expenses, ws.user_id,
+               u.username AS started_by_username
+        FROM work_sessions ws
+        LEFT JOIN users u ON u.id = ws.user_id AND u.tenant_id = ws.tenant_id
+        WHERE ws.tenant_id = %s
+        ORDER BY ws.work_date DESC, ws.start_time DESC, ws.id DESC
         LIMIT 200
         """,
         (current_user.tenant_id,),
@@ -169,17 +190,28 @@ def session_detail(session_id: int):
     if not sess:
         flash("Session not found.", "error")
         return redirect(url_for("work.sessions_list"))
+    tid = current_user.tenant_id
+    started_by_username = _username_for_user(tid, sess.get("user_id"))
+    ended_by_username = _username_for_user(tid, sess.get("ended_by_user_id"))
     tasks = execute_query(
         """
-        SELECT id, task_text, created_at
-        FROM work_tasks
-        WHERE tenant_id = %s AND session_id = %s
-        ORDER BY id ASC
+        SELECT wt.id, wt.task_text, wt.created_at, wt.user_id,
+               u.username AS added_by_username
+        FROM work_tasks wt
+        LEFT JOIN users u ON u.id = wt.user_id AND u.tenant_id = wt.tenant_id
+        WHERE wt.tenant_id = %s AND wt.session_id = %s
+        ORDER BY wt.id ASC
         """,
-        (current_user.tenant_id, session_id),
+        (tid, session_id),
         fetch_all=True,
     )
-    return render_template("work/session_detail.html", session=sess, tasks=tasks or [])
+    return render_template(
+        "work/session_detail.html",
+        session=sess,
+        tasks=tasks or [],
+        started_by_username=started_by_username,
+        ended_by_username=ended_by_username,
+    )
 
 
 @work_bp.route("/sessions/<int:session_id>/stop", methods=["POST"])
@@ -215,10 +247,17 @@ def session_stop(session_id: int):
     execute_query(
         """
         UPDATE work_sessions
-        SET end_time = %s, hours_worked = %s, updated_at = %s
+        SET end_time = %s, hours_worked = %s, ended_by_user_id = %s, updated_at = %s
         WHERE id = %s AND tenant_id = %s
         """,
-        (end_time, hours_worked, datetime.utcnow(), session_id, current_user.tenant_id),
+        (
+            end_time,
+            hours_worked,
+            current_user.id,
+            datetime.utcnow(),
+            session_id,
+            current_user.tenant_id,
+        ),
         fetch_all=False,
     )
     flash("Session stopped.", "success")
@@ -239,12 +278,13 @@ def session_add_task(session_id: int):
         return redirect(url_for("work.session_detail", session_id=session_id))
     execute_query(
         """
-        INSERT INTO work_tasks (tenant_id, session_id, task_text, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO work_tasks (tenant_id, session_id, user_id, task_text, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
         (
             current_user.tenant_id,
             session_id,
+            current_user.id,
             text,
             datetime.utcnow(),
             datetime.utcnow(),
@@ -288,11 +328,19 @@ def session_edit(session_id: int):
         if end_time and hours_worked is None:
             hours_worked = _hours_from_times(work_date, start_time, end_time)
 
+        prev_end = sess.get("end_time")
+        ended_by_user_id = sess.get("ended_by_user_id")
+        if end_time is None:
+            ended_by_user_id = None
+        elif prev_end is None:
+            ended_by_user_id = current_user.id
+
         execute_query(
             """
             UPDATE work_sessions
             SET project = %s, work_date = %s, start_time = %s, end_time = %s,
-                hours_worked = %s, notes = %s, income = %s, expenses = %s, updated_at = %s
+                hours_worked = %s, notes = %s, income = %s, expenses = %s,
+                ended_by_user_id = %s, updated_at = %s
             WHERE id = %s AND tenant_id = %s
             """,
             (
@@ -304,6 +352,7 @@ def session_edit(session_id: int):
                 notes,
                 income,
                 expenses,
+                ended_by_user_id,
                 datetime.utcnow(),
                 session_id,
                 current_user.tenant_id,
@@ -314,3 +363,76 @@ def session_edit(session_id: int):
         return redirect(url_for("work.session_detail", session_id=session_id))
 
     return render_template("work/session_edit.html", session=sess)
+
+
+def _send_tenant_invite_email(to_email: str, tenant_name: str, invite_url: str) -> bool:
+    app_name = os.environ.get("APP_NAME", "Web App")
+    return send_template_email(
+        to_email=to_email,
+        subject=f"Team invitation — {tenant_name} ({app_name})",
+        template_name="emails/tenant_invite.html",
+        template_vars={
+            "app_name": app_name,
+            "tenant_name": tenant_name,
+            "invite_url": invite_url,
+        },
+    )
+
+
+@work_bp.route("/team", methods=["GET", "POST"])
+@login_required
+@rate_limit("30 per minute")
+def team_invites():
+    if not current_user.is_admin:
+        flash("Only team administrators can manage invitations.", "error")
+        return redirect(url_for("work.sessions_list"))
+
+    tenant_row = execute_query(
+        "SELECT name FROM tenants WHERE id = %s LIMIT 1",
+        (current_user.tenant_id,),
+        fetch_one=True,
+    )
+    tenant_name = (tenant_row or {}).get("name") or "Your team"
+    utcnow = datetime.utcnow()
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        ok, msg, plain_token = create_invite(
+            current_user.tenant_id, email, current_user.id
+        )
+        if ok and plain_token:
+            invite_url = url_for(
+                "auth.accept_team_invite", token=plain_token, _external=True
+            )
+            sent = _send_tenant_invite_email(email, tenant_name, invite_url)
+            if sent:
+                flash(msg + " An email was sent with the link.", "success")
+            else:
+                flash(
+                    msg
+                    + " Email could not be sent; copy the link from logs or try again after configuring mail.",
+                    "warning",
+                )
+        else:
+            flash(msg, "error")
+        return redirect(url_for("work.team_invites"))
+
+    invites = list_invites_for_tenant(current_user.tenant_id)
+    return render_template(
+        "work/team_invites.html",
+        tenant_name=tenant_name,
+        invites=invites,
+        utcnow=utcnow,
+    )
+
+
+@work_bp.route("/team/revoke/<int:invite_id>", methods=["POST"])
+@login_required
+@rate_limit("30 per minute")
+def team_invite_revoke(invite_id: int):
+    if not current_user.is_admin:
+        flash("Access denied.", "error")
+        return redirect(url_for("work.sessions_list"))
+    ok, msg = revoke_invite(current_user.tenant_id, invite_id, current_user.id)
+    flash(msg, "success" if ok else "error")
+    return redirect(url_for("work.team_invites"))

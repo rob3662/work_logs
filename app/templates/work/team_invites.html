@@ -1,0 +1,76 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Team invitations — {{ app_name }}{% endblock %}
+{% block content %}
+<h1 class="mb-2">Team invitations</h1>
+<p class="text-muted mb-4">{{ tenant_name }} · Invite people by email. They must use a new address that does not already have an account.</p>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Send invite</h2>
+    <form method="post" class="row g-3 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="col-md-8">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-control" type="email" id="email" name="email" required placeholder="colleague@example.com">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">Send invitation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<h2 class="h5">Recent invitations</h2>
+{% if invites %}
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Sent</th>
+        <th>Expires</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in invites %}
+      <tr>
+        <td>{{ inv.email }}</td>
+        <td>{{ inv.created_at }}</td>
+        <td>{{ inv.expires_at }}</td>
+        <td>
+          {% if inv.accepted_at %}
+            <span class="badge text-bg-success">Accepted</span>
+          {% elif inv.revoked_at %}
+            <span class="badge text-bg-secondary">Revoked</span>
+          {% elif inv.expires_at < utcnow %}
+            <span class="badge text-bg-warning text-dark">Expired</span>
+          {% else %}
+            <span class="badge text-bg-primary">Pending</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if not inv.accepted_at and not inv.revoked_at and not (inv.expires_at < utcnow) %}
+          <form method="post" action="{{ url_for('work.team_invite_revoke', invite_id=inv.id) }}" class="d-inline" onsubmit="return confirm('Revoke this invitation?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">No invitations yet.</p>
+{% endif %}
+
+<p class="mt-4"><a href="{{ url_for('work.sessions_list') }}">Back to work sessions</a></p>
+{% endblock %}

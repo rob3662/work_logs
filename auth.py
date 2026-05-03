@@ -164,6 +164,110 @@ class UserManager:
             return False, "An error occurred while creating the user"
 
     @staticmethod
+    def create_user_in_existing_tenant(
+        tenant_id: int,
+        username: str,
+        email: str,
+        password: str,
+        *,
+        is_tenant_admin: bool = False,
+        email_verified: bool = True,
+    ):
+        """Create a user on an existing tenant (e.g. invite acceptance). No new tenant row."""
+        try:
+            if username and username.strip().lower() == "admin":
+                return False, "The username 'admin' is reserved for the seeded admin account."
+
+            email_valid, email_error = validate_email(email)
+            if not email_valid:
+                return False, email_error
+
+            if is_email_prefix_blocked(email):
+                return False, "Registration is not available for this email address."
+
+            password_valid, password_error = validate_password(password)
+            if not password_valid:
+                return False, password_error
+
+            email_norm = email.lower().strip()
+            dup_email = execute_query(
+                "SELECT id FROM users WHERE LOWER(TRIM(email)) = %s LIMIT 1",
+                (email_norm,),
+                fetch_one=True,
+            )
+            if dup_email:
+                return False, "An account with this email already exists."
+
+            dup_username = execute_query(
+                """
+                SELECT id FROM users WHERE LOWER(TRIM(username)) = %s LIMIT 1
+                """,
+                (username.strip().lower(),),
+                fetch_one=True,
+            )
+            if dup_username:
+                return False, "Username already taken"
+
+            max_users = (os.environ.get("MAX_REGISTERED_USERS") or "").strip()
+            if max_users.isdigit():
+                cap = int(max_users)
+                cnt = execute_query("SELECT COUNT(*) AS c FROM users", fetch_one=True)
+                if cnt and int(cnt.get("c") or 0) >= cap:
+                    return False, "Registration is closed (user limit reached)."
+
+            tenant_exists = execute_query(
+                "SELECT id FROM tenants WHERE id = %s LIMIT 1",
+                (tenant_id,),
+                fetch_one=True,
+            )
+            if not tenant_exists:
+                return False, "Invalid organization."
+
+            verification_token = None if email_verified else secrets.token_urlsafe(32)
+            password_hash = generate_password_hash(password)
+            site_admin_flag = False
+
+            result = execute_query(
+                """
+                INSERT INTO users (
+                    tenant_id, username, email, password_hash, is_admin, is_site_admin,
+                    email_verified, verification_token, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    tenant_id,
+                    username,
+                    email_norm,
+                    password_hash,
+                    is_tenant_admin,
+                    site_admin_flag,
+                    email_verified,
+                    verification_token,
+                    datetime.utcnow(),
+                ),
+                fetch_one=True,
+            )
+
+            if not result:
+                return False, "Failed to create user"
+
+            user_id = result["id"]
+            log_security_event(
+                "user_created_invite",
+                user_id,
+                {"email": email_norm, "tenant_id": tenant_id},
+            )
+            payload = {"user_id": user_id, "id": user_id}
+            if verification_token:
+                payload["verification_token"] = verification_token
+            return True, payload
+
+        except Exception as e:
+            logger.error("Error creating user in tenant: %s", e)
+            return False, "An error occurred while creating the user"
+
+    @staticmethod
     def get_user_by_id(user_id):
         try:
             result = execute_query("SELECT * FROM users WHERE id = %s", (user_id,), fetch_one=True)

@@ -205,11 +205,17 @@ def init_db() -> None:
                 notes TEXT NOT NULL DEFAULT '',
                 income NUMERIC(12,2),
                 expenses NUMERIC(12,2),
+                ended_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """,
             fetch_all=False,
+        )
+        _ensure_column(
+            "work_sessions",
+            "ended_by_user_id",
+            "ALTER TABLE work_sessions ADD COLUMN ended_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;",
         )
         execute_query(
             """
@@ -232,12 +238,18 @@ def init_db() -> None:
                 id SERIAL PRIMARY KEY,
                 tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
                 session_id INTEGER NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
                 task_text TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """,
             fetch_all=False,
+        )
+        _ensure_column(
+            "work_tasks",
+            "user_id",
+            "ALTER TABLE work_tasks ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;",
         )
         execute_query(
             """
@@ -265,6 +277,38 @@ def init_db() -> None:
             """
             CREATE INDEX IF NOT EXISTS idx_work_expense_items_session
             ON work_expense_items (session_id);
+            """,
+            fetch_all=False,
+        )
+
+        execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS tenant_invites (
+                id SERIAL PRIMARY KEY,
+                tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                invited_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                accepted_at TIMESTAMP,
+                revoked_at TIMESTAMP
+            );
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tenant_invites_tenant
+            ON tenant_invites (tenant_id);
+            """,
+            fetch_all=False,
+        )
+        execute_query(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_invites_one_pending_per_email
+            ON tenant_invites (tenant_id, LOWER(TRIM(email)))
+            WHERE accepted_at IS NULL AND revoked_at IS NULL;
             """,
             fetch_all=False,
         )

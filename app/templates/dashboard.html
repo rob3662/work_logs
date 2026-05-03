@@ -16,12 +16,13 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% if recent_sessions %}
 <div class="table-responsive">
   <table class="table table-sm table-striped">
-    <thead><tr><th>Date</th><th>Project</th><th>Hours</th><th></th></tr></thead>
+    <thead><tr><th>Date</th><th>Project</th><th>Started by</th><th>Hours</th><th></th></tr></thead>
     <tbody>
       {% for s in recent_sessions %}
       <tr>
         <td>{{ s.work_date }}</td>
         <td>{{ s.project }}</td>
+        <td>{% if s.started_by_username %}{{ s.started_by_username }}{% else %}—{% endif %}</td>
         <td>{% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</td>
         <td><a href="{{ url_for('work.session_detail', session_id=s.id) }}">Open</a></td>
       </tr>

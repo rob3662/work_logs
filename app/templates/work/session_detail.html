@@ -19,6 +19,12 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   </div>
 </div>
 <dl class="row mb-4">
+  <dt class="col-sm-3">Started by</dt>
+  <dd class="col-sm-9">{% if started_by_username %}{{ started_by_username }}{% else %}User #{{ session.user_id }}{% endif %}</dd>
+  {% if session.end_time %}
+  <dt class="col-sm-3">Stopped by</dt>
+  <dd class="col-sm-9">{% if ended_by_username %}{{ ended_by_username }}{% else %}<span class="text-muted">Not recorded (session closed before this was tracked)</span>{% endif %}</dd>
+  {% endif %}
   <dt class="col-sm-3">Hours</dt>
   <dd class="col-sm-9">{% if session.hours_worked is not none %}{{ session.hours_worked }}{% else %}—{% endif %}</dd>
   <dt class="col-sm-3">Income</dt>
@@ -62,11 +68,15 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 </script>
 {% endif %}
 
-<h2 class="h5">Tasks</h2>
+<h2 class="h5 mb-0">Tasks</h2>
+<p class="text-muted small">Who added each task is shown on the right.</p>
 {% if tasks %}
 <ul class="list-group mb-3">
   {% for t in tasks %}
-  <li class="list-group-item">{{ t.task_text }}</li>
+  <li class="list-group-item d-flex justify-content-between gap-2 flex-wrap">
+    <span>{{ t.task_text }}</span>
+    <span class="text-muted small">{% if t.added_by_username %}{{ t.added_by_username }}{% else %}—{% endif %}</span>
+  </li>
   {% endfor %}
 </ul>
 {% else %}

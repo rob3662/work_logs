@@ -1,0 +1,32 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Accept invitation — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <h2 class="mb-3">Join {{ invite.tenant_name }}</h2>
+    <p class="text-muted">You are signing up as <strong>{{ invite.email }}</strong>. Choose a username and password for this site.</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="mb-3">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control" type="text" id="username" name="username" minlength="3" required autocomplete="username">
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" type="password" id="password" name="password" minlength="8" required autocomplete="new-password">
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="confirm_password">Confirm password</label>
+        <input class="form-control" type="password" id="confirm_password" name="confirm_password" minlength="8" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary">Create account</button>
+      <a class="btn btn-outline-secondary ms-2" href="{{ url_for('main.index') }}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
