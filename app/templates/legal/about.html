@@ -5,4 +5,22 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}About — {{ app_name }}{% endblock %}
-{% block content %}<h1>About</h1><p>Replace this page with your product story.</p>{% endblock %}
+{% block description %}What {{ app_name }} is for: simple work logs, income lines, and reports for self-employed users.{% endblock %}
+{% block content %}
+<div class="col-lg-10">
+  <h1 class="mb-3">About {{ app_name }}</h1>
+  <p class="lead text-muted">{{ app_name }} is a lightweight work log for <strong>self-employed</strong> and independent workers who want a clear history of <strong>when</strong> they worked, <strong>on what</strong>, and <strong>how much</strong> they earned (and optionally spent) on each job or client block.</p>
+
+  <h2 class="h4 mt-4">What it does</h2>
+  <ul>
+    <li><strong>Sessions</strong> — one row per stretch of work: project, date, times, hours, notes.</li>
+    <li><strong>Income and expense lines</strong> — optional line items per session so totals stay traceable.</li>
+    <li><strong>Reports</strong> — filter by range and project; switch between a generic summary and an <strong>EI-oriented</strong> layout with weekly rollups; export to CSV or PDF.</li>
+  </ul>
+
+  <h2 class="h4 mt-4">What it is not</h2>
+  <p>It is not a full payroll system, accounting package, or government filing tool. Numbers are only as good as what you enter.</p>
+
+  <p class="mt-4"><a href="{{ url_for('main.how_it_works') }}">How it works</a> · <a href="{{ url_for('main.faq') }}">FAQ</a> · <a href="{{ url_for('main.contact') }}">Contact</a></p>
+</div>
+{% endblock %}

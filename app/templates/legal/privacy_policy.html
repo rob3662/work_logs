@@ -4,5 +4,35 @@ This file is part of a proprietary software project.
 Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
-{% block title %}Privacy — {{ app_name }}{% endblock %}
-{% block content %}<h1>Privacy policy</h1><p>Draft your policy for {{ app_name }}.</p>{% endblock %}
+{% block title %}Privacy policy — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="col-lg-10">
+  <h1 class="mb-3">Privacy policy</h1>
+  <p class="text-muted small">Replace this paragraph with your effective date and jurisdiction-specific disclosures before production use.</p>
+
+  <h2 class="h5 mt-4">Who we are</h2>
+  <p>This policy describes how <strong>{{ app_name }}</strong> (“we”, “us”) handles personal information when you use our website and service.</p>
+
+  <h2 class="h5 mt-4">What we collect</h2>
+  <ul>
+    <li><strong>Account data</strong> — such as email, username, and credentials needed to authenticate you.</li>
+    <li><strong>Work log data</strong> — sessions, tasks, income and expense lines, and related fields you enter, stored under your tenant workspace.</li>
+    <li><strong>Technical data</strong> — such as IP address, browser type, and logs used for security, rate limiting, and troubleshooting.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">Why we use it</h2>
+  <p>To provide the service, secure your account, improve reliability, and meet legal obligations where applicable.</p>
+
+  <h2 class="h5 mt-4">Cookies and sessions</h2>
+  <p>We use cookies or similar technologies needed for login and security (for example session cookies). See your browser settings to manage cookies.</p>
+
+  <h2 class="h5 mt-4">Retention</h2>
+  <p>We retain information while your account is active and as needed afterward for backups, legal holds, or audit requirements. Replace this sentence with your real retention schedule.</p>
+
+  <h2 class="h5 mt-4">Your rights</h2>
+  <p>Depending on where you live, you may have rights to access, correct, delete, or export your personal data. Contact us to exercise those rights.</p>
+
+  <h2 class="h5 mt-4">Contact</h2>
+  <p>Privacy questions: <a href="mailto:{{ PRIVACY_EMAIL }}">{{ PRIVACY_EMAIL }}</a> · <a href="{{ url_for('main.contact') }}">Contact page</a></p>
+</div>
+{% endblock %}

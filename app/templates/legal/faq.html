@@ -5,4 +5,22 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}FAQ — {{ app_name }}{% endblock %}
-{% block content %}<h1>FAQ</h1><p>Add common questions here.</p>{% endblock %}
+{% block content %}
+<div class="col-lg-10">
+  <h1 class="mb-4">Frequently asked questions</h1>
+
+  <h2 class="h5 mt-4">Sessions and hours</h2>
+  <p><strong>How do I stop an open session?</strong><br>On the session page, set end time and/or use <strong>Hours (optional override)</strong>, then Stop. If you enter hours, the stored end time is computed from your start time and those hours.</p>
+  <p><strong>Where do income and expenses go?</strong><br>Add <strong>income lines</strong> and <strong>expense lines</strong> on the session detail page. The session totals are the sums of those lines; you do not type totals directly on the start/edit session forms.</p>
+
+  <h2 class="h5 mt-4">Reports</h2>
+  <p><strong>What is the difference between Generic and EI-oriented?</strong><br>Both use the same underlying sessions. Generic shows full totals including expenses and net. EI-oriented focuses on hours and gross revenue and adds a Sunday-based <strong>weekly summary</strong> table.</p>
+  <p><strong>Why does the weekly table sit above the filters on the EI report?</strong><br>So the weekly snapshot is visible first; change From/To or project below and click <strong>Apply</strong> to refresh everything together.</p>
+  <p><strong>What is in the CSV/PDF?</strong><br>The active tab’s export includes the same filters as the page. EI exports omit expense columns and include a weekly summary block in the CSV; the PDF follows the EI layout.</p>
+
+  <h2 class="h5 mt-4">Account</h2>
+  <p><strong>Who can delete a session?</strong><br>Only the <strong>tenant owner</strong> can delete a session (to avoid accidental loss of shared history). Editors can still add lines and stop sessions per your rules.</p>
+
+  <p class="mt-4"><a href="{{ url_for('main.how_it_works') }}">How it works</a> · <a href="{{ url_for('main.contact') }}">Contact</a></p>
+</div>
+{% endblock %}

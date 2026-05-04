@@ -1,0 +1,72 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}Disclaimer - Sub Tracker{% endblock %}
+
+{% block description %}Disclaimer for Sub Tracker. Important information about the accuracy of pay estimates, EI benefit calculations, and data provided by this substitute teacher tracking tool.{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Disclaimer</h1>
+            <p class="text-muted">Last updated: March 28, 2026</p>
+            
+            <hr class="my-4">
+
+            <h2 class="h4 mt-4">Introduction</h2>
+            <p>This website and application (“Sub Tracker,” “Sub Tracker NL,” or the “Service”) are operated by <strong>Robert Brake</strong>. The information and tools on the Service are provided for general informational and personal record-keeping purposes. They are not a substitute for official payroll records, Service Canada determinations, or professional advice.</p>
+            
+            <h2 class="h4 mt-4">General Information</h2>
+            <p>While we aim to keep information useful and up to date, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability, or availability of the Service or anything on it. Any reliance you place on such information is strictly at your own risk. You should independently verify important figures and decisions (for example, with your employer, payroll, Service Canada, or a qualified professional).</p>
+            
+            <h2 class="h4 mt-4">No Warranty</h2>
+            <p>To the fullest extent permitted by law, Robert Brake (operating Sub Tracker NL) disclaims all warranties, express or implied, including implied warranties of merchantability and fitness for a particular purpose.</p>
+            
+            <h2 class="h4 mt-4">Accuracy of Calculations and Estimates</h2>
+            <p>The Service may display estimates for pay, deductions, EI-related summaries, and similar outputs. These depend on data you enter, schedules and parameters in the Service, and third-party or published inputs (for example, regional unemployment figures used for illustrations). <strong>They are not guarantees.</strong> Actual pay, benefits, and entitlements are determined by employers, collective agreements, Service Canada, and applicable law. You should:</p>
+            <ul>
+                <li>Verify all amounts with your employer or payroll provider</li>
+                <li>Ensure the information you enter is accurate and complete</li>
+                <li>Consult qualified professionals for tax, legal, or employment questions</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Not Professional Advice</h2>
+            <p>Nothing on the Service is professional financial, legal, tax, or employment advice. Do not rely on it as a substitute for advice tailored to your situation.</p>
+            
+            <h2 class="h4 mt-4">Limitation of Liability</h2>
+            <p>To the fullest extent permitted by law, Robert Brake and anyone acting on his behalf will not be liable for any loss or damage, including indirect or consequential loss or damage, or any loss of data, profits, or revenue, arising from use of or reliance on the Service.</p>
+            
+            <h2 class="h4 mt-4">User Responsibility</h2>
+            <p>You are solely responsible for:</p>
+            <ul>
+                <li>The accuracy and legality of information you enter</li>
+                <li>How you use outputs from the Service</li>
+                <li>Seeking appropriate professional advice when needed</li>
+                <li>Compliance with applicable laws and workplace obligations</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Third-Party Links and Services</h2>
+            <p>The Service may reference or link to third-party sites (for example, government or union resources). We do not control and are not responsible for their content or privacy practices.</p>
+            
+            <h2 class="h4 mt-4">Changes to This Disclaimer</h2>
+            <p>We may update this disclaimer at any time. Changes will be posted on this page with an updated “Last updated” date.</p>
+            
+            <h2 class="h4 mt-4">Contact Information</h2>
+            <p>Questions about this Disclaimer? Email
+                <a href="mailto:{{ ADMIN_EMAIL }}">{{ ADMIN_EMAIL }}</a>,
+                or for support,
+                <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a>,
+                or visit the
+                <a href="{{ url_for('main.contact') }}">Contact page</a>.
+            </p>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

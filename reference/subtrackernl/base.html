@@ -1,0 +1,763 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sub Tracker{% endblock %}</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block description %}Track substitute teaching work, calculate pay rates, and manage your teaching schedule.{% endblock %}">
+    <meta name="keywords" content="{% block keywords %}substitute teacher, work tracker, pay calculator, teaching schedule{% endblock %}">
+    <meta name="author" content="Robert Brake">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="F7xAm67vhJzHMqWrmctKeNYK6pe8zUF6sdTGMTd4XPM" />
+    
+    <!-- Canonical URL (normalized, no query parameters) -->
+    <link rel="canonical" href="{{ canonical_url }}">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+    <meta property="og:image" content="{{ url_for('static', filename='facebook_cover.png', _external=True) }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ self.title() }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ self.description() }}{% endblock %}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='twitter_profile.png', _external=True) }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/styles.css') }}?v={{ assets_version }}" rel="stylesheet">
+    
+    <!-- Custom CSS Variables for Theming -->
+    <style>
+        :root {
+            /* Light theme */
+            --primary-color: #6c5ce7;
+            --secondary-color: #a29bfe;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --border-color: #ddd;
+            --success-color: #00b894;
+            --warning-color: #fdcb6e;
+            --danger-color: #e17055;
+            --info-color: #74b9ff;
+
+            /* Bootstrap body/headings colors follow theme variables */
+            --bs-body-bg: var(--bg-primary);
+            --bs-body-color: var(--text-primary);
+            --bs-heading-color: var(--text-primary);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme */
+            --primary-color: #a29bfe;
+            --secondary-color: #6c5ce7;
+            --bg-primary: #2d3436;
+            --bg-secondary: #636e72;
+            --text-primary: #ffffff;
+            --text-secondary: #ffffff;
+            --border-color: #636e72;
+            --success-color: #00cec9;
+            --warning-color: #fdcb6e;
+            --danger-color: #e84393;
+            --info-color: #74b9ff;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .navbar {
+            background-color: var(--bg-secondary) !important;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .text-secondary {
+            color: var(--text-secondary) !important;
+        }
+
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+
+        .bg-secondary {
+            background-color: var(--bg-secondary) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}">
+                <i class="fas fa-chalkboard-teacher me-2"></i>
+                Sub Tracker
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.calendar') }}">
+                                <i class="fas fa-calendar-alt me-1"></i>Calendar
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.ei_claim') }}">
+                                <i class="fas fa-file-invoice-dollar me-1"></i>EI Claim
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.subscription_plans') }}">
+                                <i class="fas fa-credit-card me-1"></i>Plans
+                            </a>
+                        </li>
+                        {% if current_user.is_admin %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-shield-alt me-1"></i>Admin
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('admin.admin_dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.admin_users') }}">
+                        <i class="fas fa-users me-2"></i>Manage Users
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.admin_subscriptions') }}">
+                        <i class="fas fa-credit-card me-2"></i>Subscriptions
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.admin_feedback') }}">
+                        <i class="fas fa-comment-dots me-2"></i>User Feedback
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="showAlert('Coming soon!', 'info'); return false;">
+                                    <i class="fas fa-chart-line me-2"></i>Analytics
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="showAlert('Coming soon!', 'info'); return false;">
+                                    <i class="fas fa-shield-alt me-2"></i>Security Logs
+                                </a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="feedbackDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-comment-dots me-1"></i>Feedback
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('main.feedback') }}">
+                                    <i class="fas fa-plus me-2"></i>Submit Feedback
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('main.my_feedback') }}">
+                                    <i class="fas fa-list me-2"></i>My Feedback
+                                </a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>{{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">
+                                    <i class="fas fa-user me-2"></i>Profile
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">
+                                <i class="fas fa-user-plus me-1"></i>Register
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    <!-- Theme Toggle -->
+                    <li class="nav-item">
+                        <button class="btn btn-outline-secondary btn-sm ms-2 btn-theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+                            <i class="fas fa-moon" id="theme-icon"></i>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Announcements Banner -->
+    {% if current_user.is_authenticated and unread_announcements %}
+        {% for announcement in unread_announcements %}
+            <div class="container mt-3 announcement-banner" data-announcement-id="{{ announcement.id }}">
+                <div class="alert alert-{{ 'danger' if announcement.priority == 'urgent' else 'warning' if announcement.priority == 'high' else 'info' }} alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="alert-heading mb-2">
+                                <i class="fas fa-{{ 'exclamation-triangle' if announcement.priority == 'urgent' else 'info-circle' if announcement.priority == 'high' else 'bell' }} me-2"></i>
+                                {{ announcement.title }}
+                            </h5>
+                            <p class="mb-0">{{ announcement.message }}</p>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-clock me-1"></i>{{ announcement.created_at.strftime('%B %d, %Y') }}
+                            </small>
+                        </div>
+                        <button type="button" class="btn-close ms-3 js-announcement-read" data-announcement-id="{{ announcement.id }}" aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-secondary py-5 mt-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <h6 class="text-uppercase fw-bold mb-3">Legal Information</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.disclaimer') }}">Disclaimer</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.terms_of_service') }}">Terms &amp; Conditions</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-uppercase fw-bold mb-3">About &amp; Help</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.about') }}">About</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.how_it_works') }}">How It Works</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.ei_guide') }}">EI Benefits Guide</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.user_guide') }}">User Guide</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.faq') }}">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-uppercase fw-bold mb-3">Contact &amp; Feedback</h6>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.contact') }}">Contact Us</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.feature_request') }}">Feature Request</a></li>
+                        <li class="mb-1"><a class="text-decoration-none" href="{{ url_for('main.feedback') }}">Feedback</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0">&copy; 2025&ndash;2026 Robert Brake (Sub Tracker NL). All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    
+    <!-- Reusable Alert Modal -->
+    <div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" id="alertModalHeader">
+                    <h5 class="modal-title" id="alertModalTitle">
+                        <i class="fas fa-info-circle me-2" id="alertModalIcon"></i><span id="alertModalTitleText">Alert</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="alertModalMessage" class="mb-0"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="alertModalOkBtn">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reusable Confirm Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" id="confirmModalHeader">
+                    <h5 class="modal-title" id="confirmModalTitle">
+                        <i class="fas fa-question-circle me-2" id="confirmModalIcon"></i><span id="confirmModalTitleText">Confirm</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmModalMessage" class="mb-0"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="confirmModalCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmModalConfirmBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reusable Prompt Modal -->
+    <div class="modal fade" id="promptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" id="promptModalHeader">
+                    <h5 class="modal-title" id="promptModalTitle">
+                        <i class="fas fa-keyboard me-2" id="promptModalIcon"></i><span id="promptModalTitleText">Input</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="promptModalMessage" class="mb-2"></p>
+                    <input type="text" class="form-control" id="promptModalInput" placeholder="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="promptModalCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="promptModalConfirmBtn">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            
+            // Update theme icon
+            const themeIcon = document.getElementById('theme-icon');
+            if (themeIcon) {
+                themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Apply saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        });
+    </script>
+    
+    <!-- Reusable Alert and Confirm Modal Functions -->
+    <script>
+        // Custom alert function to replace browser alert()
+        function showAlert(message, type = 'info', title = null) {
+            // Check if Bootstrap is available
+            if (typeof bootstrap === 'undefined') {
+                // Fallback to browser alert if Bootstrap isn't loaded
+                alert(message);
+                return Promise.resolve();
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('alertModal'));
+            const modalElement = document.getElementById('alertModal');
+            const header = document.getElementById('alertModalHeader');
+            const titleEl = document.getElementById('alertModalTitleText');
+            const icon = document.getElementById('alertModalIcon');
+            const messageEl = document.getElementById('alertModalMessage');
+            const okBtn = document.getElementById('alertModalOkBtn');
+            
+            // Set message - support HTML if message contains <br> tags
+            if (message.includes('<br>') || message.includes('<br/>')) {
+                messageEl.innerHTML = message;
+            } else {
+                messageEl.textContent = message;
+            }
+            
+            // Set title
+            if (title) {
+                titleEl.textContent = title;
+            } else {
+                switch(type) {
+                    case 'error':
+                    case 'danger':
+                        titleEl.textContent = 'Error';
+                        break;
+                    case 'warning':
+                        titleEl.textContent = 'Warning';
+                        break;
+                    case 'success':
+                        titleEl.textContent = 'Success';
+                        break;
+                    default:
+                        titleEl.textContent = 'Information';
+                }
+            }
+            
+            // Set icon and colors based on type
+            header.className = 'modal-header';
+            okBtn.className = 'btn';
+            
+            switch(type) {
+                case 'error':
+                case 'danger':
+                    icon.className = 'fas fa-exclamation-circle me-2 text-danger';
+                    header.classList.add('border-danger');
+                    okBtn.classList.add('btn-danger');
+                    break;
+                case 'warning':
+                    icon.className = 'fas fa-exclamation-triangle me-2 text-warning';
+                    header.classList.add('border-warning');
+                    okBtn.classList.add('btn-warning');
+                    break;
+                case 'success':
+                    icon.className = 'fas fa-check-circle me-2 text-success';
+                    header.classList.add('border-success');
+                    okBtn.classList.add('btn-success');
+                    break;
+                default:
+                    icon.className = 'fas fa-info-circle me-2 text-info';
+                    header.classList.add('border-info');
+                    okBtn.classList.add('btn-primary');
+            }
+            
+            // Return a promise that resolves when modal is closed
+            return new Promise((resolve) => {
+                modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+                    modalElement.removeEventListener('hidden.bs.modal', onHidden);
+                    resolve();
+                }, { once: true });
+                modal.show();
+            });
+        }
+        
+        // Custom confirm function to replace browser confirm()
+        function showConfirm(message, title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel', type = 'warning') {
+            // Check if Bootstrap is available
+            if (typeof bootstrap === 'undefined') {
+                // Fallback to browser confirm if Bootstrap isn't loaded
+                return Promise.resolve(confirm(message));
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            const modalElement = document.getElementById('confirmModal');
+            const header = document.getElementById('confirmModalHeader');
+            const titleEl = document.getElementById('confirmModalTitleText');
+            const icon = document.getElementById('confirmModalIcon');
+            const messageEl = document.getElementById('confirmModalMessage');
+            const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+            const cancelBtn = document.getElementById('confirmModalCancelBtn');
+            
+            // Set message and title
+            messageEl.textContent = message;
+            titleEl.textContent = title;
+            confirmBtn.textContent = confirmText;
+            cancelBtn.textContent = cancelText;
+            
+            // Set icon and colors based on type
+            header.className = 'modal-header';
+            confirmBtn.className = 'btn';
+            
+            switch(type) {
+                case 'danger':
+                    icon.className = 'fas fa-exclamation-triangle me-2 text-danger';
+                    header.classList.add('border-danger');
+                    confirmBtn.classList.add('btn-danger');
+                    break;
+                case 'warning':
+                    icon.className = 'fas fa-question-circle me-2 text-warning';
+                    header.classList.add('border-warning');
+                    confirmBtn.classList.add('btn-warning');
+                    break;
+                case 'info':
+                    icon.className = 'fas fa-info-circle me-2 text-info';
+                    header.classList.add('border-info');
+                    confirmBtn.classList.add('btn-info');
+                    break;
+                default:
+                    icon.className = 'fas fa-question-circle me-2 text-primary';
+                    header.classList.add('border-primary');
+                    confirmBtn.classList.add('btn-primary');
+            }
+            
+            // Return a promise that resolves to true/false
+            return new Promise((resolve) => {
+                const cleanup = () => {
+                    confirmBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                };
+                
+                confirmBtn.onclick = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve(true);
+                };
+                
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve(false);
+                };
+                
+                // Also resolve false if modal is closed via X or backdrop
+                modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+                    cleanup();
+                    modalElement.removeEventListener('hidden.bs.modal', onHidden);
+                    resolve(false);
+                }, { once: true });
+                
+                modal.show();
+            });
+        }
+        
+        // Custom prompt function to replace browser prompt()
+        function showPrompt(message, title = 'Input', defaultValue = '') {
+            // Check if Bootstrap is available
+            if (typeof bootstrap === 'undefined') {
+                // Fallback to browser prompt if Bootstrap isn't loaded
+                return Promise.resolve(prompt(message, defaultValue));
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('promptModal'));
+            const modalElement = document.getElementById('promptModal');
+            const header = document.getElementById('promptModalHeader');
+            const titleEl = document.getElementById('promptModalTitleText');
+            const icon = document.getElementById('promptModalIcon');
+            const messageEl = document.getElementById('promptModalMessage');
+            const inputEl = document.getElementById('promptModalInput');
+            const confirmBtn = document.getElementById('promptModalConfirmBtn');
+            const cancelBtn = document.getElementById('promptModalCancelBtn');
+            
+            // Set message and title
+            messageEl.textContent = message;
+            titleEl.textContent = title;
+            inputEl.value = defaultValue;
+            
+            // Set icon and colors
+            icon.className = 'fas fa-keyboard me-2 text-primary';
+            header.className = 'modal-header border-primary';
+            confirmBtn.className = 'btn btn-primary';
+            
+            // Focus input when modal is shown
+            modalElement.addEventListener('shown.bs.modal', function onShown() {
+                inputEl.focus();
+                inputEl.select();
+                modalElement.removeEventListener('shown.bs.modal', onShown);
+            }, { once: true });
+            
+            // Return a promise that resolves to the input value or null
+            return new Promise((resolve) => {
+                const cleanup = () => {
+                    confirmBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                    inputEl.onkeypress = null;
+                };
+                
+                const handleConfirm = () => {
+                    cleanup();
+                    const value = inputEl.value;
+                    modal.hide();
+                    resolve(value);
+                };
+                
+                confirmBtn.onclick = handleConfirm;
+                
+                // Allow Enter key to confirm
+                inputEl.onkeypress = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleConfirm();
+                    }
+                };
+                
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    modal.hide();
+                    resolve(null);
+                };
+                
+                // Also resolve null if modal is closed via X or backdrop
+                modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+                    cleanup();
+                    modalElement.removeEventListener('hidden.bs.modal', onHidden);
+                    resolve(null);
+                }, { once: true });
+                
+                modal.show();
+            });
+        }
+        
+        // Override browser alert and confirm for consistency (optional - can be enabled/disabled)
+        // Uncomment these if you want to globally replace browser alerts/confirms
+        // window.alert = function(message) {
+        //     return showAlert(message, 'info');
+        // };
+        // window.confirm = function(message) {
+        //     return showConfirm(message, 'Confirm', 'OK', 'Cancel');
+        // };
+    </script>
+
+    <!-- Announcements JavaScript -->
+    <script>
+        function markAnnouncementRead(announcementId, buttonElement) {
+            // Hide the announcement immediately for better UX
+            const banner = buttonElement.closest('.announcement-banner');
+            if (banner) {
+                banner.style.transition = 'opacity 0.3s';
+                banner.style.opacity = '0';
+                setTimeout(() => {
+                    banner.style.display = 'none';
+                }, 300);
+            }
+            
+            // Get CSRF token - try multiple methods
+            let csrfToken = '';
+            const csrfInput = document.querySelector('input[name="csrf_token"]');
+            if (csrfInput) {
+                csrfToken = csrfInput.value;
+            } else {
+                // Try to get from any form on the page
+                const form = document.querySelector('form');
+                if (form) {
+                    const formCsrf = form.querySelector('input[name="csrf_token"]');
+                    if (formCsrf) {
+                        csrfToken = formCsrf.value;
+                    }
+                }
+            }
+            
+            // Create form data
+            const formData = new URLSearchParams();
+            formData.append('csrf_token', csrfToken);
+            
+            // Mark as read via AJAX
+            fetch(`/announcements/${announcementId}/mark-read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Failed to mark announcement as read:', data.error);
+                    // Show the banner again if it failed
+                    if (banner) {
+                        banner.style.display = 'block';
+                        banner.style.opacity = '1';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error marking announcement as read:', error);
+                // Show the banner again if it failed
+                if (banner) {
+                    banner.style.display = 'block';
+                    banner.style.opacity = '1';
+                }
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.js-announcement-read');
+            if (!btn || !btn.closest('.announcement-banner')) {
+                return;
+            }
+            const raw = btn.getAttribute('data-announcement-id');
+            if (raw == null || raw === '') {
+                return;
+            }
+            const id = parseInt(raw, 10);
+            if (Number.isNaN(id)) {
+                return;
+            }
+            markAnnouncementRead(id, btn);
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

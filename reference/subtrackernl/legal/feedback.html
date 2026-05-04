@@ -1,0 +1,70 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}Feedback - Sub Tracker{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="mb-4">Feedback</h1>
+      <p class="text-muted">We'd love to hear how we can improve Sub Tracker.</p>
+      
+      <hr class="my-4">
+      
+      {% if current_user.is_authenticated %}
+      <div class="alert alert-info">
+        <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Submit Feedback Online</h5>
+        <p class="mb-3">You can submit feedback directly through our feedback form. This allows us to track and respond to your feedback more efficiently.</p>
+        <a href="{{ url_for('main.feedback') }}" class="btn btn-primary">
+          <i class="fas fa-comment-dots me-2"></i>Submit Feedback
+        </a>
+        <a href="{{ url_for('main.my_feedback') }}" class="btn btn-outline-secondary ms-2">
+          <i class="fas fa-list me-2"></i>View My Feedback
+        </a>
+      </div>
+      {% else %}
+      <div class="alert alert-warning">
+        <h5 class="alert-heading"><i class="fas fa-sign-in-alt me-2"></i>Login Required</h5>
+        <p class="mb-3">To submit feedback through our online form, please <a href="{{ url_for('auth.login') }}" class="alert-link">log in</a> first.</p>
+        <p class="mb-0">Alternatively, you can email us directly at <a href="mailto:{{ FEEDBACK_EMAIL }}">{{ FEEDBACK_EMAIL }}</a></p>
+      </div>
+      {% endif %}
+      
+      <h2 class="h4 mt-4">Feedback Categories</h2>
+      <p>You can submit feedback in the following categories:</p>
+      <ul>
+        <li><strong>🐛 Bug Report:</strong> Report technical issues or unexpected behavior</li>
+        <li><strong>✨ Feature Request:</strong> Suggest new features or improvements</li>
+        <li><strong>💡 Suggestion:</strong> Share ideas for enhancing the user experience</li>
+        <li><strong>📝 Other:</strong> Any other feedback or comments</li>
+      </ul>
+      
+      <h2 class="h4 mt-4">What Happens Next?</h2>
+      <p>When you submit feedback:</p>
+      <ul>
+        <li>Your feedback is logged in our system</li>
+        <li>You'll receive a confirmation message</li>
+        <li>Our team reviews all feedback regularly</li>
+        <li>You can view the status of your feedback in "My Feedback"</li>
+        <li>We may respond directly if we need more information</li>
+      </ul>
+      
+      <h2 class="h4 mt-4">Alternative Contact Methods</h2>
+      <p>If you prefer to contact us directly:</p>
+      <ul>
+        <li>Email: <a href="mailto:{{ FEEDBACK_EMAIL }}">{{ FEEDBACK_EMAIL }}</a></li>
+        <li>General Support: <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a></li>
+        <li><a href="{{ url_for('main.contact') }}">Contact Us</a> page for other inquiries</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

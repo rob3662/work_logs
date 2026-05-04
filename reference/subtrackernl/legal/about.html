@@ -1,0 +1,42 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}About Sub Tracker - Substitute Teacher Work Tracker for Newfoundland{% endblock %}
+
+{% block description %}Learn about Sub Tracker, a work tracking tool built for Newfoundland and Labrador substitute teachers. Track work days, calculate pay, and manage your teaching schedule.{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="mb-4">Our Story</h1>
+      <p class="text-muted">Why Sub Tracker exists and what we aim to solve.</p>
+      <hr class="my-4">
+      <p>Sub Tracker began as a simple way to keep accurate records of substitute teaching days, hours, and pay.
+         It has grown into a focused tool that helps substitutes track work days, estimate pay, and prepare reports
+         while keeping data private and secure.</p>
+
+      <h2 class="h4 mt-4">Our Mission</h2>
+      <ul>
+        <li>Provide clear, simple tracking of work days and hours</li>
+        <li>Offer practical summaries (pay estimates, EI weeks) per local needs</li>
+        <li>Respect user privacy and security</li>
+      </ul>
+
+      <h2 class="h4 mt-4">Privacy & Security</h2>
+      <p>We use HTTPS for all traffic, hashed passwords, rate limiting, and structured logging. See our
+         <a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a> for details.</p>
+
+      <h2 class="h4 mt-4">Contact</h2>
+      <p>Questions? Email <a href="mailto:{{ CONTACT_US_EMAIL }}">{{ CONTACT_US_EMAIL }}</a>.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

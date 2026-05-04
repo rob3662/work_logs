@@ -1,0 +1,36 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}How it works — {{ app_name }}{% endblock %}
+{% block description %}Using {{ app_name }}: work sessions, income and expense lines, reports, and exports for self-employment records.{% endblock %}
+{% block content %}
+<div class="col-lg-10">
+  <h1 class="mb-3">How {{ app_name }} works</h1>
+  <p class="lead text-muted">{{ app_name }} helps self-employed people log work sessions, attach income and expenses as lines, and run reports for your records (including an EI-oriented view and CSV/PDF exports).</p>
+
+  <h2 class="h4 mt-4">1. Account and workspace</h2>
+  <p>After you register and sign in, your data lives in <strong>your workspace</strong> (tenant). Other workspaces cannot see your sessions. If you use team invites, only users you add to your tenant can collaborate there.</p>
+
+  <h2 class="h4 mt-4">2. Work sessions</h2>
+  <p><strong>Start a session</strong> with project name, work date, and start time. <strong>Open sessions</strong> can be stopped from the session page: enter an end time, or use <strong>Hours (optional override)</strong> so hours and end time stay consistent. <strong>Income</strong> and <strong>expenses</strong> are entered as <strong>lines</strong> on the session page; totals on the session are the sums of those lines.</p>
+
+  <h2 class="h4 mt-4">3. Tasks (optional)</h2>
+  <p>You can add short task notes on a session when you need a simple checklist alongside the log.</p>
+
+  <h2 class="h4 mt-4">4. Reports</h2>
+  <p>Open <strong>Reports</strong> from the navigation. Choose a date range and optional project substring, then <strong>Apply</strong>.</p>
+  <ul>
+    <li><strong>Generic</strong> — totals for hours, income, expenses, and net, plus a session list.</li>
+    <li><strong>EI-oriented</strong> — emphasizes <strong>hours</strong> and <strong>gross self-employment revenue</strong>, with a <strong>weekly summary</strong> (Sunday-based weeks) for the last four weeks ending on your <strong>To</strong> date, clipped to your range and filters.</li>
+  </ul>
+  <p>Download <strong>CSV</strong> or <strong>PDF</strong> for the active tab; exports use the same filters as the on-screen report.</p>
+
+  <h2 class="h4 mt-4">5. Not legal or payroll advice</h2>
+  <p>{{ app_name }} is a record-keeping tool. You remain responsible for accuracy and for any filings or advice from a qualified professional. See the <a href="{{ url_for('main.disclaimer') }}">disclaimer</a>.</p>
+
+  <p class="mt-4"><a href="{{ url_for('main.faq') }}">FAQ</a> · <a href="{{ url_for('main.contact') }}">Contact</a></p>
+</div>
+{% endblock %}

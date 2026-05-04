@@ -1,0 +1,175 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}FAQ - Substitute Teacher Tracker & EI Benefits Questions{% endblock %}
+
+{% block description %}Frequently asked questions about Sub Tracker for Newfoundland substitute teachers. Learn about pay estimates, EI benefits, sick days, data export, and more.{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="mb-4">Frequently Asked Questions</h1>
+      <div class="accordion" id="faqAccordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q1">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a1">How are pay estimates calculated?</button>
+          </h2>
+          <div id="a1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">We use NLTA schedule data (Schedule B for low rate, Schedule C for high rate) and the hours you record to estimate pay. The system uses your certificate level, years worked, and the pay rate type (low/high) to calculate daily rates. On the Professional plan, you can view detailed breakdowns including deductions in the Pay Day Information modal.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q2">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2">What counts toward EI hours?</button>
+          </h2>
+          <div id="a2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Regular work hours are scaled to 8-hour days for EI purposes (e.g., 5 hours worked = 8 EI hours). The EI Claim page shows weekly summaries with your insurable hours, income, and helps identify your best weeks for EI benefit calculations. You can select your region—St. John's ({{ "%.1f"|format(ei_nl_rates.st_johns_pct) }}%, {{ ei_nl_rates.st_johns_insured_hours_to_qualify }} h to qualify) or Rest of Province ({{ "%.1f"|format(ei_nl_rates.rest_pct) }}%, {{ ei_nl_rates.rest_insured_hours_to_qualify }} h)—to see estimated benefits; those figures are loaded from Service Canada when the app refreshes.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q3">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3">What email can I use to register?</button>
+          </h2>
+          <div id="a3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Registration requires a @nlschools.ca or @nlesd.ca email address. This email must be verified before you can log in for the first time. After your work email is verified, you can optionally add a personal email address in your profile that can also be used for login once verified.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q4">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a4">How do sick days work?</button>
+          </h2>
+          <div id="a4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Sick days are tracked per school year. You set your starting sick day balance in your profile for each school year. Sick days accrue based on hours worked, and you can use them when marking a work day as a sick day. Your balance can go as low as -2.0 days. Family days are separate - you get 3.0 days per school year and they don't accrue. Weather days are for tracking days when you were booked but schools were closed due to weather (like snow storms). These tags (sick, family, weather) are mutually exclusive - you can only select one per work day.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q5">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a5">What's the difference between low rate and high rate?</button>
+          </h2>
+          <div id="a5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Low rate (Schedule B) is the standard pay rate used by default. High rate (Schedule C) applies when you work 3 or more consecutive days for the same teacher or when in a Vacant Position. You can manually select which rate applies to each work day when adding or editing entries. The system calculates daily rates based on your certificate level and years worked.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q6">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a6">Can I export my data?</button>
+          </h2>
+          <div id="a6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Yes! You can export your work days to CSV or PDF format with filtering options (date range, paid/unpaid status, etc.). You can also export your EI claim weekly summaries to CSV or PDF. All exports include comprehensive data for your records.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q7">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a7">How do I reset my password?</button>
+          </h2>
+          <div id="a7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Use the "Forgot Password" link on the login page. Enter your email address and you'll receive a password reset link via email. You can also change your password anytime from your profile page.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q8">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a8">What are announcements?</button>
+          </h2>
+          <div id="a8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Announcements are important messages from administrators displayed at the top of the page. They may include service updates, new features, or important information. Once you dismiss an announcement by clicking the X button, it won't appear again. You can always view past announcements through the admin interface if you have access.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q9">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a9">How do I get help?</button>
+          </h2>
+          <div id="a9" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Check the <a href="{{ url_for('main.user_guide') }}">User Guide</a> for detailed instructions. You can also <a href="{{ url_for('main.feedback') }}">submit feedback</a> to report bugs or request features, or email <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a> for support.</div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q10">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a10">When is scheduled maintenance?</button>
+          </h2>
+          <div id="a10" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body">Scheduled maintenance is performed on <strong>Saturdays from 2:00 PM to 4:00 PM</strong> (Newfoundland Time). The site may be temporarily unavailable during this window. We try to keep maintenance windows brief and will post announcements for any extended downtime.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% set _ei_faq_ei_hours_text %}
+Regular work hours are scaled to 8-hour days for EI purposes (e.g., 5 hours worked = 8 EI hours). The EI Claim page shows weekly summaries with your insurable hours, income, and helps identify your best weeks for EI benefit calculations. You can select your region—St. John's ({{ "%.1f"|format(ei_nl_rates.st_johns_pct) }}%, {{ ei_nl_rates.st_johns_insured_hours_to_qualify }} h to qualify) or Rest of Province ({{ "%.1f"|format(ei_nl_rates.rest_pct) }}%, {{ ei_nl_rates.rest_insured_hours_to_qualify }} h)—to see estimated benefits; those figures are loaded from Service Canada when the app refreshes.
+{% endset %}
+
+<!-- Schema.org FAQPage Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How are pay estimates calculated?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "We use NLTA schedule data (Schedule B for low rate, Schedule C for high rate) and the hours you record to estimate pay. The system uses your certificate level, years worked, and the pay rate type (low/high) to calculate daily rates. On the Professional plan, you can view detailed breakdowns including deductions in the Pay Day Information modal."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What counts toward EI hours?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ _ei_faq_ei_hours_text | trim | tojson }}
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What email can I use to register?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Registration requires a @nlschools.ca or @nlesd.ca email address. This email must be verified before you can log in for the first time. After your work email is verified, you can optionally add a personal email address in your profile that can also be used for login once verified."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do sick days work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sick days are tracked per school year. You set your starting sick day balance in your profile for each school year. Sick days accrue based on hours worked, and you can use them when marking a work day as a sick day. Your balance can go as low as -2.0 days. Family days are separate - you get 3.0 days per school year and they don't accrue. Weather days are for tracking days when you were booked but schools were closed due to weather (like snow storms). These tags (sick, family, weather) are mutually exclusive - you can only select one per work day."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What's the difference between low rate and high rate?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Low rate (Schedule B) is the standard pay rate used by default. High rate (Schedule C) applies when you work 3 or more consecutive days for the same teacher. You can manually select which rate applies to each work day when adding or editing entries. The system calculates daily rates based on your certificate level and years worked."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I export my data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes! You can export your work days to CSV or PDF format with filtering options (date range, paid/unpaid status, etc.). You can also export your EI claim weekly summaries to CSV or PDF. All exports include comprehensive data for your records."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When is scheduled maintenance?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Scheduled maintenance is performed on Saturdays from 2:00 PM to 4:00 PM (Newfoundland Time). The site may be temporarily unavailable during this window. We try to keep maintenance windows brief and will post announcements for any extended downtime."
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+

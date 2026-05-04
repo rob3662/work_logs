@@ -314,6 +314,7 @@ def sitemap_xml():
         "main.privacy_policy",
         "main.terms_of_service",
         "main.disclaimer",
+        "main.how_it_works",
     ]
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -362,6 +363,11 @@ def about():
 @main_bp.route("/faq")
 def faq():
     return render_template("legal/faq.html")
+
+
+@main_bp.route("/how-it-works")
+def how_it_works():
+    return render_template("legal/how_it_works.html")
 
 
 @api_bp.route("/healthz")

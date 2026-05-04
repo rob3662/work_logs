@@ -5,7 +5,39 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}Contact — {{ app_name }}{% endblock %}
+{% block description %}Contact {{ app_name }} support by email.{% endblock %}
 {% block content %}
-<h1>Contact</h1>
-<p>Email: <a href="mailto:{{ CONTACT_US_EMAIL }}">{{ CONTACT_US_EMAIL }}</a></p>
+<div class="col-lg-10">
+  <h1 class="mb-3">Contact us</h1>
+  <p class="text-muted">Questions about using {{ app_name }}, your account, or exports? Send a message to the address below.</p>
+
+  <div class="row g-4 my-4">
+    <div class="col-md-6">
+      <div class="card h-100 border">
+        <div class="card-body">
+          <h2 class="h5 card-title">General support</h2>
+          <p class="card-text small mb-2">Include what you were trying to do and, if relevant, the session or report date range.</p>
+          <p class="mb-0"><a class="btn btn-primary" href="mailto:{{ CONTACT_US_EMAIL }}?subject={{ ('Question about ' ~ app_name)|urlencode }}">{{ CONTACT_US_EMAIL }}</a></p>
+          <p class="form-text small mb-0 mt-2">This opens your default email program. If nothing happens, set a mail handler in your browser or OS (mailto links need an email app).</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border">
+        <div class="card-body">
+          <h2 class="h5 card-title">Before you write</h2>
+          <p class="card-text small mb-0">Many answers are in the <a href="{{ url_for('main.how_it_works') }}">How it works</a> and <a href="{{ url_for('main.faq') }}">FAQ</a> pages.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <strong>Feature requests and feedback</strong> use separate addresses (same as the footer). Each link opens your email app:
+    <ul class="mb-0 mt-2">
+      <li><a href="mailto:{{ FEATURES_EMAIL }}?subject={{ ('Feature request — ' ~ app_name)|urlencode }}">{{ FEATURES_EMAIL }}</a> — ideas for new behavior</li>
+      <li><a href="mailto:{{ FEEDBACK_EMAIL }}?subject={{ ('Feedback — ' ~ app_name)|urlencode }}">{{ FEEDBACK_EMAIL }}</a> — bugs or how the app feels to use</li>
+    </ul>
+  </div>
+</div>
 {% endblock %}

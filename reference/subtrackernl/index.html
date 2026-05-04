@@ -1,0 +1,182 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}Substitute Teacher Tracker Newfoundland | EI Calculator & Work Day Tracker{% endblock %}
+
+{% block description %}Track substitute teaching days, calculate EI benefits, and manage your schedule. Built for Newfoundland and Labrador substitute teachers. Free work day tracker with EI calculator.{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row align-items-center min-vh-50">
+    <div class="col-lg-6">
+        <h1 class="display-4 fw-bold text-primary mb-4">
+            Track Your Substitute Teaching Days & Calculate EI Benefits in Newfoundland
+        </h1>
+        <p class="lead mb-4">
+            Professional substitute teacher tracker and EI calculator designed specifically for Newfoundland and Labrador. 
+            Track your work days, calculate weekly totals, estimate EI benefits, and manage your substitute teaching schedule with ease.
+        </p>
+        <div class="d-flex gap-3">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-user-plus me-2"></i>Get Started
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-6 text-center">
+        <i class="fas fa-chalkboard-teacher fa-10x text-primary opacity-75"></i>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h2 class="text-center mb-5">Why Choose Sub Tracker?</h2>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-calculator fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Accurate Paycheque Estimates</h5>
+                <p class="card-text">
+                    Get paycheque estimates using NLTA pay schedules and your saved details (certificate level, step, rate).
+                    The high rate can be toggled per day when applicable; automatic 3+ day detection is not used.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-calendar-alt fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Easy Schedule Management</h5>
+                <p class="card-text">
+                    Track your work days, schools, teachers, and hours with an intuitive calendar interface. 
+                    Add, edit, or delete entries with just a few clicks.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Practical Reporting</h5>
+                <p class="card-text">
+                    View weekly summaries, calendar totals, EI claim summaries, and export your data to CSV/PDF (with eligible plans).
+                    Focused, useful reports to help you track work days and pay.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works Section -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h2 class="text-center mb-3">How It Works</h2>
+        <p class="text-center text-muted mb-5">
+            <a href="{{ url_for('main.how_it_works') }}" class="text-decoration-none">View detailed guide <i class="fas fa-arrow-right ms-1"></i></a>
+        </p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-3 text-center">
+        <div class="mb-3">
+            <span class="badge bg-primary rounded-circle p-3 fs-4">1</span>
+        </div>
+        <h5>Create Account</h5>
+        <p class="text-muted">Sign up with your email and set up your teaching profile with certificate level and experience.</p>
+    </div>
+    
+    <div class="col-md-3 text-center">
+        <div class="mb-3">
+            <span class="badge bg-primary rounded-circle p-3 fs-4">2</span>
+        </div>
+        <h5>Add Work Days</h5>
+        <p class="text-muted">Record each substitute teaching assignment with date, school, teacher, and hours worked.</p>
+    </div>
+    
+    <div class="col-md-3 text-center">
+        <div class="mb-3">
+            <span class="badge bg-primary rounded-circle p-3 fs-4">3</span>
+        </div>
+        <h5>Estimate Pay</h5>
+        <p class="text-muted">Get an estimated paycheque using NLTA schedules and your saved details. High rate can be toggled per day; automatic 3+ day detection is not used.</p>
+    </div>
+    
+    <div class="col-md-3 text-center">
+        <div class="mb-3">
+            <span class="badge bg-primary rounded-circle p-3 fs-4">4</span>
+        </div>
+        <h5>Track Progress</h5>
+        <p class="text-muted">Monitor your earnings, work patterns, and generate reports for your records.</p>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card bg-primary text-white text-center">
+            <div class="card-body py-5">
+                <h2 class="card-title mb-3">Ready to Get Started?</h2>
+                <p class="card-text lead mb-4">
+                    Join substitute teachers across Newfoundland and Labrador who trust Sub Tracker 
+                    to manage their work.
+                </p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Start Tracking Today
+                    </a>
+                    <a href="{{ url_for('main.how_it_works') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-question-circle me-2"></i>Learn How It Works
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schema.org Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Sub Tracker",
+  "url": "https://subtrackernl.ca",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Track substitute teaching days, calculate EI benefits, and manage your schedule. Built for Newfoundland and Labrador substitute teachers.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CAD"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5",
+    "ratingCount": "1"
+  },
+  "featureList": [
+    "Track substitute teaching work days",
+    "Calculate EI benefits for Newfoundland teachers",
+    "Weekly totals and benefit rate calculator",
+    "Export work days to CSV/PDF",
+    "Pay estimate calculator using NLTA schedules"
+  ]
+}
+</script>
+{% endblock %}

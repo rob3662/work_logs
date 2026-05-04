@@ -4,5 +4,31 @@ This file is part of a proprietary software project.
 Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
-{% block title %}Terms — {{ app_name }}{% endblock %}
-{% block content %}<h1>Terms of service</h1><p>Draft your terms for {{ app_name }}.</p>{% endblock %}
+{% block title %}Terms of service — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="col-lg-10">
+  <h1 class="mb-3">Terms of service</h1>
+  <p class="text-muted small">Draft terms — have counsel review before relying on them in production.</p>
+
+  <h2 class="h5 mt-4">Using the service</h2>
+  <p>By accessing or using <strong>{{ app_name }}</strong>, you agree to these terms. If you do not agree, do not use the service.</p>
+
+  <h2 class="h5 mt-4">Accounts</h2>
+  <p>You must provide accurate registration information and keep your credentials confidential. You are responsible for activity under your account.</p>
+
+  <h2 class="h5 mt-4">Acceptable use</h2>
+  <p>You will not misuse the service (for example: attempting to access other tenants’ data, probing security, or overloading infrastructure). We may suspend or terminate accounts that violate these terms or put the service at risk.</p>
+
+  <h2 class="h5 mt-4">Service changes</h2>
+  <p>We may modify, suspend, or discontinue features with or without notice. We will try to avoid disruptive changes where reasonable.</p>
+
+  <h2 class="h5 mt-4">Disclaimers</h2>
+  <p>The service is provided <strong>as is</strong> without warranties of any kind. See the <a href="{{ url_for('main.disclaimer') }}">disclaimer</a>.</p>
+
+  <h2 class="h5 mt-4">Limitation of liability</h2>
+  <p>To the fullest extent permitted by law, our total liability arising from your use of the service is limited as described in your written agreement with us, or if none, to the fees you paid us in the twelve months before the claim (or zero if the service is free).</p>
+
+  <h2 class="h5 mt-4">Contact</h2>
+  <p>Questions about these terms: <a href="mailto:{{ TERMS_EMAIL }}">{{ TERMS_EMAIL }}</a></p>
+</div>
+{% endblock %}

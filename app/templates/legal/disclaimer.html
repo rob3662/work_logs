@@ -5,4 +5,16 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}Disclaimer — {{ app_name }}{% endblock %}
-{% block content %}<h1>Disclaimer</h1><p>Add your legal disclaimer.</p>{% endblock %}
+{% block content %}
+<div class="col-lg-10">
+  <h1 class="mb-3">Disclaimer</h1>
+  <p>The information and tools provided by <strong>{{ app_name }}</strong> are for <strong>general record-keeping and convenience only</strong>. Nothing on this site is legal, tax, accounting, employment insurance, or financial advice.</p>
+  <ul>
+    <li>You are responsible for the accuracy of the data you enter.</li>
+    <li>Reports and exports (including “EI-oriented” labels) are <strong>documentation aids</strong> only. They do not replace official requirements, deadlines, or guidance from government agencies or qualified professionals.</li>
+    <li>We do not guarantee uninterrupted access, error-free calculations, or fitness for any particular compliance outcome.</li>
+  </ul>
+  <p>Use of {{ app_name }} is at your own risk. Where liability cannot be excluded by law, it is limited to the maximum extent permitted.</p>
+  <p class="mt-3"><a href="{{ url_for('main.contact') }}">Contact</a> · <a href="{{ url_for('main.terms_of_service') }}">Terms of service</a></p>
+</div>
+{% endblock %}

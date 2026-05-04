@@ -1,0 +1,177 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}User Guide - How to Use Sub Tracker for Substitute Teachers{% endblock %}
+
+{% block description %}Complete user guide for Sub Tracker. Learn how to track work days, calculate pay, manage EI benefits, export data, and use all features of the substitute teacher tracker.{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">User Guide</h1>
+            <p class="text-muted">Welcome to Sub Tracker - Your employment tracking solution</p>
+            
+            <hr class="my-4">
+            
+            <h2 class="h4 mt-4">Getting Started</h2>
+            <p>To begin using Sub Tracker:</p>
+            <ol>
+                <li>Create an account or log in with your existing credentials</li>
+                <li>Complete your profile with your certificate level, years worked, and starting sick days for each school year</li>
+                <li>Start adding your work days using the dashboard or calendar</li>
+            </ol>
+            
+            <h2 class="h4 mt-4">Subscription plans</h2>
+            <p>The <a href="{{ url_for('main.subscription_plans') }}">Plans</a> page lists current limits and features. The Free plan caps how many work entries you can add over the life of your account; deleting an entry does not free another slot. The Professional plan does not cap how many work days you can enter (across school years) and unlocks exports, EI claim tools, and related features.</p>
+            
+            <h2 class="h4 mt-4">Tracking Work Days</h2>
+            <p>When adding a work day, you'll need to provide:</p>
+            <ul>
+                <li><strong>Work Date:</strong> The date you worked</li>
+                <li><strong>Consecutive Days:</strong> The number of consecutive days you worked for the same teacher</li>
+                <li><strong>School Name:</strong> The school where you worked</li>
+                <li><strong>Teacher Name:</strong> The teacher you replaced</li>
+                <li><strong>Hours Worked:</strong> Number of hours (up to 5.00 per day)</li>
+                <li><strong>Sick Day/Family Day/Weather Day:</strong> Check if applicable (mutually exclusive options)</li>
+                <li><strong>High Rate:</strong> Check if this qualifies for high rate pay (Schedule C)</li>
+                <li><strong>Paid:</strong> Check if you have been paid for this work day</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Dashboard View</h2>
+            <p>The dashboard displays statistics and work days for the <strong>current school year</strong> (September 1st to present). The dashboard title shows the current school year (e.g., "Dashboard (2025-2026)"). The dashboard provides:</p>
+            <ul>
+                <li><strong>Summary Statistics:</strong> Total days tracked, hours worked, and EI hours for the current school year</li>
+                <li><strong>Sick Days Remaining:</strong> Your available sick day balance for the current school year</li>
+                <li><strong>Family Days Remaining:</strong> Your family day allowance (3 days per year) for the current school year</li>
+                <li><strong>Recent Work Days:</strong> Your 25 most recent work entries from the current school year</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Calendar View</h2>
+            <p>The calendar view offers:</p>
+            <ul>
+                <li><strong>Monthly Calendar:</strong> Visual representation of all your work days</li>
+                <li><strong>Weekly Totals:</strong> See your hours, EI hours, and earnings by week</li>
+                <li><strong>Quick Access:</strong> Click any day to view or edit work entries</li>
+                <li><strong>Navigation:</strong> Move between months using the navigation arrows</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">EI Claim Summary</h2>
+            <p>The EI Claim page provides:</p>
+            <ul>
+                <li><strong>Weekly Summaries:</strong> View your work days organized by week for EI benefit calculations</li>
+                <li><strong>EI Hours Tracking:</strong> See your insurable hours (hours worked scaled to 8-hour days)</li>
+                <li><strong>Income Tracking:</strong> Track your gross pay per week</li>
+                <li><strong>Best Weeks Calculation:</strong> Automatically identifies your best weeks for EI benefit calculation</li>
+                <li><strong>Regional EI settings:</strong> Choose St. John's or Rest of Province; the unemployment rate and insured hours required to qualify are loaded from Service Canada when the app restarts (St. John's {{ "%.1f"|format(ei_nl_rates.st_johns_pct) }}% / {{ ei_nl_rates.st_johns_insured_hours_to_qualify }} h, Rest of Province {{ "%.1f"|format(ei_nl_rates.rest_pct) }}% / {{ ei_nl_rates.rest_insured_hours_to_qualify }} h at last refresh)</li>
+                <li><strong>Sorting Options:</strong> Sort by date, income, or EI hours to analyze your data</li>
+                <li><strong>Export Options:</strong> Export your EI claim data to CSV or PDF format</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Exporting Data</h2>
+            <p>Sub Tracker allows you to export your data in multiple formats:</p>
+            <ul>
+                <li><strong>Work Days Export:</strong> Export your work days to CSV or PDF with filtering options (date range, paid/unpaid, etc.)</li>
+                <li><strong>EI Claim Export:</strong> Export your EI weekly summaries to CSV or PDF format</li>
+                <li><strong>Filter Options:</strong> Filter exports by date range, payment status, and more</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Profile Management</h2>
+            <p>In your profile, you can:</p>
+            <ul>
+                <li><strong>Email Management:</strong> Add an optional personal email address (separate from your work email) that can also be used for login once verified</li>
+                <li><strong>School Year Data:</strong> Add or modify school year data (certificate level, years worked, sick days) for each school year</li>
+                <li><strong>Pay Rates:</strong> View calculated daily pay rates for low and high rate schedules</li>
+                <li><strong>Password:</strong> Change your password at any time</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Account Security</h2>
+            <p>Sub Tracker includes several security features:</p>
+            <ul>
+                <li><strong>Email Verification:</strong> Registration requires a @nlschools.ca or @nlesd.ca email address, which must be verified before first login</li>
+                <li><strong>Personal Email:</strong> Optional personal email can be added and verified for additional login options</li>
+                <li><strong>Password Reset:</strong> Use the "Forgot Password" feature to reset your password via email</li>
+                <li><strong>Secure Authentication:</strong> All passwords are securely hashed and stored</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Work Day Tags: Sick Days, Family Days, and Weather Days</h2>
+            <p class="mb-3"><strong>Note:</strong> These tags are mutually exclusive - you can only select one per work day.</p>
+            <h3 class="h6 mt-3">Sick Days:</h3>
+            <ul>
+                <li>Starting sick days: Set in your profile for each school year</li>
+                <li>Accrual: Earn sick days based on hours worked</li>
+                <li>Minimum balance: Can go to -2.0 days minimum</li>
+            </ul>
+            <h3 class="h6 mt-3">Family Days:</h3>
+            <ul>
+                <li>Annual allowance: 3.0 days per school year</li>
+                <li>Use wisely: These do not accrue like sick days</li>
+            </ul>
+            <h3 class="h6 mt-3">Weather Days:</h3>
+            <ul>
+                <li>Use for days when you were booked but schools were closed due to weather (e.g., snow storms)</li>
+                <li>Helps track days that were scheduled but didn't occur due to weather-related closures</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Pay Rate Types</h2>
+            <p>Sub Tracker supports two pay rate types:</p>
+            <ul>
+                <li><strong>Low Rate (Schedule B):</strong> Standard pay rate, used by default</li>
+                <li><strong>High Rate (Schedule C):</strong> Higher pay rate for 3+ consecutive days for the same teacher or when in a Vacant Position</li>
+            </ul>
+            <p>You can manually select which rate applies to each work day when adding or editing entries.</p>
+            
+            <h2 class="h4 mt-4">Pay Day Information</h2>
+            <p>For users on the Professional plan, the Pay Day Information feature provides:</p>
+            <ul>
+                <li><strong>Pay Day Calendar:</strong> View upcoming pay days and their associated deduction periods</li>
+                <li><strong>Deduction Details:</strong> See detailed breakdowns of deductions (EI, CPP, taxes) for each pay period</li>
+                <li><strong>Holiday Adjustments:</strong> Pay days automatically adjust for holidays and stat days</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Announcements</h2>
+            <p>Important announcements from administrators will appear at the top of the page when you log in. These may include:</p>
+            <ul>
+                <li><strong>Service Updates:</strong> Maintenance notices or system changes</li>
+                <li><strong>New Features:</strong> Information about new functionality or improvements</li>
+                <li><strong>Policy Changes:</strong> Important updates to terms or policies</li>
+                <li><strong>General Information:</strong> Relevant information for all users</li>
+            </ul>
+            <p>Announcements are prioritized by importance (urgent, high, normal, or low) and can have expiration dates. Once you dismiss an announcement by clicking the X button, it won't appear again. The system tracks which announcements you've read to avoid showing duplicates.</p>
+            
+            <h2 class="h4 mt-4">Feedback and Support</h2>
+            <p>Sub Tracker includes built-in feedback tools:</p>
+            <ul>
+                <li><strong>Submit Feedback:</strong> Report bugs, request features, or share suggestions</li>
+                <li><strong>My Feedback:</strong> View your submitted feedback and responses from administrators</li>
+                <li><strong>Feature Requests:</strong> Submit ideas for new features or improvements</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Tips and Best Practices</h2>
+            <ul>
+                <li>Enter work days as soon as possible to keep accurate records</li>
+                <li>Verify your certificate level and years worked at the start of each school year</li>
+                <li>Review your weekly totals regularly to ensure accuracy</li>
+                <li>Use the EI Claim page to track your eligibility and benefit calculations</li>
+                <li>Export your data regularly for backup purposes</li>
+                <li>Keep backup records of your employment for your personal records</li>
+                <li>Contact your employer's payroll department to verify calculations if in doubt</li>
+            </ul>
+            
+            <h2 class="h4 mt-4">Need Help?</h2>
+            <p>If you have questions or need assistance:</p>
+            <ul>
+                <li><a href="{{ url_for('main.contact') }}">Contact us</a> via the contact form</li>
+                <li><a href="{{ url_for('main.feedback') }}">Submit feedback</a> to report issues or request features</li>
+                <li>Check the <a href="{{ url_for('main.faq') }}">FAQ</a> for common questions</li>
+            </ul>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

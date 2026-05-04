@@ -1,0 +1,98 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}Contact Sub Tracker - Support for Newfoundland Substitute Teachers{% endblock %}
+
+{% block description %}Get help with Sub Tracker. Contact support for questions about substitute teacher tracking, EI benefits, pay calculations, or account issues. We're here to help!{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">Contact Us</h1>
+            <p class="text-muted">We're here to help. Get in touch with us!</p>
+            
+            <hr class="my-4">
+            
+            <div class="row g-4 my-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-envelope fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">Email Support</h5>
+                            <p class="card-text">Send us an email and we'll get back to you as soon as possible.</p>
+                            <p class="card-text">
+                                <a href="mailto:{{ SUPPORT_EMAIL }}" class="btn btn-primary">{{ SUPPORT_EMAIL }}</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-3x text-success mb-3"></i>
+                            <h5 class="card-title">Response Time</h5>
+                            <p class="card-text">We typically respond to inquiries within 24-48 hours during business days.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-4">
+                <h5 class="alert-heading">Before Contacting Us</h5>
+                <p class="mb-0">Please check our <a href="{{ url_for('main.user_guide') }}" class="alert-link">User Guide</a> for answers to common questions. Many issues can be resolved by reviewing the documentation.</p>
+            </div>
+            
+            <h2 class="h4 mt-5">Support Topics</h2>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-question-circle text-info me-2"></i>General Questions</h6>
+                            <p class="card-text small">Questions about how to use Sub Tracker features</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-calculator text-success me-2"></i>Calculation Issues</h6>
+                            <p class="card-text small">Questions about pay rates, sick days, or earnings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-user-circle text-warning me-2"></i>Account Issues</h6>
+                            <p class="card-text small">Password resets, account settings, or profile problems</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-bug text-danger me-2"></i>Bug Reports</h6>
+                            <p class="card-text small">Report technical issues or unexpected behavior</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h2 class="h4 mt-5">Legal Documents</h2>
+            <ul class="list-inline">
+                <li class="list-inline-item"><a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a></li>
+                <li class="list-inline-item"><a href="{{ url_for('main.terms_of_service') }}">Terms of Service</a></li>
+                <li class="list-inline-item"><a href="{{ url_for('main.disclaimer') }}">Disclaimer</a></li>
+            </ul>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+
+{% extends "base.html" %}
+
+{% block title %}Feature Request - Suggest New Features for Sub Tracker{% endblock %}
+
+{% block description %}Request new features for Sub Tracker. Share your ideas to improve the substitute teacher tracker, EI calculator, and work day management tools for Newfoundland teachers.{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <h1 class="mb-4">Request a Feature</h1>
+      <p class="text-muted">Have an idea that would make Sub Tracker better? Tell us about it.</p>
+      
+      <hr class="my-4">
+      
+      {% if current_user.is_authenticated %}
+      <div class="alert alert-info">
+        <h5 class="alert-heading"><i class="fas fa-lightbulb me-2"></i>Submit Feature Request Online</h5>
+        <p class="mb-3">Use our feedback form to submit feature requests. Select "Feature Request" as the category when submitting.</p>
+        <a href="{{ url_for('main.feedback') }}" class="btn btn-primary">
+          <i class="fas fa-plus-circle me-2"></i>Submit Feature Request
+        </a>
+        <a href="{{ url_for('main.my_feedback') }}" class="btn btn-outline-secondary ms-2">
+          <i class="fas fa-list me-2"></i>View My Feedback
+        </a>
+      </div>
+      {% else %}
+      <div class="alert alert-warning">
+        <h5 class="alert-heading"><i class="fas fa-sign-in-alt me-2"></i>Login Required</h5>
+        <p class="mb-3">To submit feature requests through our online form, please <a href="{{ url_for('auth.login') }}" class="alert-link">log in</a> first.</p>
+        <p class="mb-0">Alternatively, you can email us directly at <a href="mailto:{% if FEATURES_EMAIL %}{{ FEATURES_EMAIL }}{% else %}features@subtrackernl.ca{% endif %}">{% if FEATURES_EMAIL %}{{ FEATURES_EMAIL }}{% else %}features@subtrackernl.ca{% endif %}</a></p>
+      </div>
+      {% endif %}
+      
+      <h2 class="h4 mt-4">What Makes a Good Feature Request?</h2>
+      <p>When submitting a feature request, please include:</p>
+      <ul>
+        <li><strong>Clear Description:</strong> What feature would you like to see?</li>
+        <li><strong>Use Case:</strong> How would this feature help you in your work?</li>
+        <li><strong>Expected Behavior:</strong> How should the feature work?</li>
+        <li><strong>Priority:</strong> Is this a nice-to-have or essential feature?</li>
+      </ul>
+      
+      <h2 class="h4 mt-4">Feature Request Process</h2>
+      <p>Here's what happens with your feature requests:</p>
+      <ol>
+        <li>Your request is logged and reviewed by our team</li>
+        <li>We evaluate feasibility and user impact</li>
+        <li>Popular requests may be prioritized for development</li>
+        <li>You can track the status of your request in "My Feedback"</li>
+        <li>We may reach out for clarification or additional details</li>
+      </ol>
+      
+      <h2 class="h4 mt-4">Alternative Contact Methods</h2>
+      <p>If you prefer to contact us directly:</p>
+      <ul>
+        <li>Email: <a href="mailto:{% if FEATURES_EMAIL %}{{ FEATURES_EMAIL }}{% else %}features@subtrackernl.ca{% endif %}">{% if FEATURES_EMAIL %}{{ FEATURES_EMAIL }}{% else %}features@subtrackernl.ca{% endif %}</a></li>
+        <li>General Feedback: <a href="{{ url_for('main.feedback') }}">Feedback Form</a></li>
+        <li><a href="{{ url_for('main.contact') }}">Contact Us</a> page for other inquiries</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
