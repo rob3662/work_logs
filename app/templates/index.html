@@ -5,11 +5,90 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}Home — {{ app_name }}{% endblock %}
+{% block description %}Log work sessions, income, and expenses in one place. Reports and exports for self-employment records—including an EI-oriented view.{% endblock %}
 {% block content %}
-<div class="p-4 p-md-5 mb-4 bg-light rounded-3">
-    <h1 class="display-6">{{ app_name }}</h1>
-    <p class="lead">Starter Flask app: auth, multi-tenant DB seed, Redis-backed limits, Mailgun/SendGrid/SMTP, Stripe webhook stub, and production deployment scripts.</p>
-    <a class="btn btn-primary btn-lg" href="{{ url_for('auth.register') }}">Create account</a>
-    <a class="btn btn-outline-secondary btn-lg ms-2" href="{{ url_for('auth.login') }}">Log in</a>
+<div class="container py-4 py-md-5">
+  <div class="landing-hero rounded-4 p-4 p-lg-5 mb-5 shadow-sm">
+    <p class="text-uppercase small fw-semibold text-primary mb-2 letter-spacing-tight">Self-employment work log</p>
+    <h1 class="display-5 fw-bold mb-3">Know what you worked—and what it earned</h1>
+    <p class="lead text-muted mb-4 col-lg-10">
+      {{ app_name }} is built for people who bill by project or need a clear paper trail: sessions with hours, income and expense lines, and reports you can export when you need numbers in one place.
+    </p>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a class="btn btn-primary btn-lg px-4" href="{{ url_for('auth.register') }}">Create free account</a>
+      <a class="btn btn-outline-secondary btn-lg px-4" href="{{ url_for('auth.login') }}">Log in</a>
+    </div>
+    <p class="small text-muted mb-0">
+      <a href="{{ url_for('main.how_it_works') }}">How it works</a>
+      <span class="text-muted mx-1">·</span>
+      <a href="{{ url_for('main.about') }}">About</a>
+      <span class="text-muted mx-1">·</span>
+      <a href="{{ url_for('main.faq') }}">FAQ</a>
+    </p>
+  </div>
+
+  <h2 class="h4 fw-semibold text-center mb-4">What you get</h2>
+  <div class="row g-4 mb-5">
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="landing-step-num rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center mb-3">1</div>
+          <h3 class="h5 card-title">Work sessions</h3>
+          <p class="card-text text-muted small mb-0">Log project, date, start and end times, and optional hour overrides. Open sessions are easy to finish when you wrap up.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="landing-step-num rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center mb-3">2</div>
+          <h3 class="h5 card-title">Income &amp; expenses as lines</h3>
+          <p class="card-text text-muted small mb-0">Attach amounts to each session so totals stay tied to the work they belong to—not a separate spreadsheet.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="landing-step-num rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center mb-3">3</div>
+          <h3 class="h5 card-title">Reports &amp; exports</h3>
+          <p class="card-text text-muted small mb-0">Filter by range and project, then use generic summaries or an EI-oriented view with weekly rollups—CSV and PDF when you need a file.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center mb-5">
+    <div class="col-lg-10">
+      <div class="card border-0 bg-light">
+        <div class="card-body p-4 p-md-5">
+          <h2 class="h5 fw-semibold mb-3">Designed for clarity</h2>
+          <ul class="list-unstyled mb-0">
+            <li class="d-flex gap-3 mb-3">
+              <span class="text-primary fw-bold flex-shrink-0">✓</span>
+              <span class="text-muted"><strong class="text-body">Your workspace</strong> — data is scoped to your tenant; you control who is invited if you collaborate.</span>
+            </li>
+            <li class="d-flex gap-3 mb-3">
+              <span class="text-primary fw-bold flex-shrink-0">✓</span>
+              <span class="text-muted"><strong class="text-body">Security-minded stack</strong> — rate limits, CSRF on state-changing actions, and structured logging behind the scenes.</span>
+            </li>
+            <li class="d-flex gap-3">
+              <span class="text-primary fw-bold flex-shrink-0">✓</span>
+              <span class="text-muted"><strong class="text-body">Not legal advice</strong> — {{ app_name }} helps you keep records; you stay responsible for filings and professional advice. <a href="{{ url_for('main.disclaimer') }}">Disclaimer</a></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card cta-card bg-primary text-white border-0 shadow">
+    <div class="card-body p-4 p-md-5 text-center">
+      <h2 class="h4 card-title text-white mb-2">Ready to try it?</h2>
+      <p class="card-text text-white opacity-90 mb-4 col-lg-8 mx-auto">Create an account in a minute, log your first session, and see reports when you have enough history.</p>
+      <a class="btn btn-light btn-lg px-4 me-2 mb-2 mb-sm-0" href="{{ url_for('auth.register') }}">Get started</a>
+      <a class="btn btn-outline-light btn-lg px-4 mb-2 mb-sm-0" href="{{ url_for('main.how_it_works') }}">Read how it works</a>
+    </div>
+  </div>
 </div>
 {% endblock %}

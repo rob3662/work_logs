@@ -1,5 +1,5 @@
 /* === LICENSE HEADER START ===
-Copyright (c) 2025 Robert Brake
+Copyright (c) 2026 Robert Brake
 This file is part of a proprietary software project.
 Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === */
@@ -171,6 +171,37 @@ body {
 [data-theme="dark"] .cta-card .btn-outline-light {
     border-color: rgba(248, 249, 250, 0.75);
     color: #f8f9fa;
+}
+
+/* Public landing hero (index) */
+.landing-hero {
+    border: 1px solid rgba(108, 92, 231, 0.18);
+    background: linear-gradient(
+        145deg,
+        rgba(108, 92, 231, 0.07) 0%,
+        rgba(248, 249, 250, 0.95) 45%,
+        #fff 100%
+    );
+}
+
+[data-theme="dark"] .landing-hero {
+    border-color: rgba(162, 155, 254, 0.28);
+    background: linear-gradient(
+        145deg,
+        rgba(108, 92, 231, 0.22) 0%,
+        rgba(45, 52, 54, 0.92) 55%,
+        var(--bs-body-bg, #212529) 100%
+    );
+}
+
+[data-theme="dark"] .landing-hero .text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.landing-step-num {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-weight: 700;
 }
 
 /* Stats Cards */

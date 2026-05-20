@@ -230,7 +230,7 @@ LOG_LEVEL=INFO
 # LOG_LEVEL=WARNING
 
 # Static assets cache-busting (bump to force browser reload)
-ASSETS_VERSION=2
+ASSETS_VERSION=1
 
 # Additional security
 SESSION_COOKIE_HTTPONLY=True
