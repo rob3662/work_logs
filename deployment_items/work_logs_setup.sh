@@ -1225,109 +1225,15 @@ EOF
     # Host-wide cloudflared updater (not tied to a project directory)
     WEBSERVER_ETC="${WEBSERVER_ETC:-/etc/webserver}"
     CF_UPDATE_SCRIPT="${WEBSERVER_ETC}/update_cloudflared.sh"
+    WS_REPO="/home/$SERVICE_USER/webserver_setup"
+    CF_SRC="${WS_REPO}/deployment_items/update_cloudflared.sh"
     print_status "Installing host-wide cloudflared update script: ${CF_UPDATE_SCRIPT}"
     sudo mkdir -p "${WEBSERVER_ETC}"
-    sudo tee "${CF_UPDATE_SCRIPT}" > /dev/null << 'CFUPDATE_EOF'
-#!/bin/bash
-# Updates the shared cloudflared binary and restarts every cloudflared-*.service.
-# Lives under /etc/webserver (same convention as server_bootstrap.sh).
-
-BACKUP_DIR="/home/${SERVICE_USER}/backups"
-LOG_FILE="$BACKUP_DIR/cloudflared-update.log"
-mkdir -p "$BACKUP_DIR"
-
-log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-resolve_cloudflared_binary() {
-    if [ -x /usr/local/bin/cloudflared ]; then echo /usr/local/bin/cloudflared; return; fi
-    if [ -x /usr/local/sbin/cloudflared ]; then echo /usr/local/sbin/cloudflared; return; fi
-    if command -v cloudflared >/dev/null 2>&1; then command -v cloudflared; return; fi
-    echo ""
-}
-
-cloudflared_units() {
-    shopt -s nullglob
-    local f
-    for f in /etc/systemd/system/cloudflared-*.service; do
-        basename "$f"
-    done
-    shopt -u nullglob
-}
-
-CLOUDFLARED_BINARY="$(resolve_cloudflared_binary)"
-if [ -z "$CLOUDFLARED_BINARY" ] || [ ! -f "$CLOUDFLARED_BINARY" ]; then
-    log_message "ERROR: cloudflared binary not found (install via server_bootstrap or package manager)"
-    exit 1
-fi
-
-log_message "Starting cloudflared update (binary: $CLOUDFLARED_BINARY)"
-
-CURRENT_VERSION=$("$CLOUDFLARED_BINARY" version 2>/dev/null | head -n1)
-log_message "Current cloudflared version: $CURRENT_VERSION"
-
-log_message "Backing up current cloudflared binary..."
-cp "$CLOUDFLARED_BINARY" "$BACKUP_DIR/cloudflared_backup_$(date +%Y%m%d_%H%M%S)"
-
-# cloudflared's built-in updater already checks for updates and only downloads when needed.
-# Exit codes:
-# - 0  : already up-to-date (no changes)
-# - 11 : updated successfully (per cloudflared help text)
-log_message "Running cloudflared built-in updater..."
-"$CLOUDFLARED_BINARY" update
-UPDATE_RC=$?
-
-if [ "$UPDATE_RC" -eq 0 ]; then
-    log_message "INFO: Already running latest version. No update performed."
-    exit 0
-fi
-
-if [ "$UPDATE_RC" -ne 11 ]; then
-    log_message "ERROR: cloudflared update failed (exit_code=$UPDATE_RC)"
-    exit "$UPDATE_RC"
-fi
-
-NEW_VERSION=$("$CLOUDFLARED_BINARY" version 2>/dev/null | head -n1)
-log_message "Updated cloudflared version: $NEW_VERSION"
-
-log_message "Stopping cloudflared systemd units..."
-for u in $(cloudflared_units); do
-    systemctl stop "$u" 2>/dev/null || true
-done
-
-sleep 1
-if pgrep -f cloudflared > /dev/null 2>&1; then
-    log_message "WARNING: cloudflared processes still running; forcing stop..."
-    pkill -9 cloudflared 2>/dev/null || true
-    sleep 1
-fi
-
-log_message "Setting SELinux context for cloudflared..."
-semanage fcontext -a -t bin_t "/usr/local/bin/cloudflared" 2>/dev/null || true
-semanage fcontext -a -t bin_t "/usr/local/sbin/cloudflared" 2>/dev/null || true
-restorecon -v "$CLOUDFLARED_BINARY" 2>/dev/null || true
-
-log_message "Starting enabled cloudflared systemd units..."
-for u in $(cloudflared_units); do
-    if systemctl is-enabled --quiet "$u" 2>/dev/null; then
-        if systemctl start "$u"; then
-            sleep 1
-            if systemctl is-active --quiet "$u"; then
-                log_message "SUCCESS: $u is active"
-            else
-                log_message "WARNING: $u started but is not active"
-            fi
-        else
-            log_message "ERROR: Failed to start $u"
-        fi
+    if [ ! -f "$CF_SRC" ]; then
+        print_error "Missing $CF_SRC — clone webserver_setup beside app repos"
+        exit 1
     fi
-done
-
-log_message "Cloudflared update completed"
-CFUPDATE_EOF
-    sudo chmod 755 "${CF_UPDATE_SCRIPT}"
-    sudo chown root:root "${CF_UPDATE_SCRIPT}"
+    sudo install -m 0755 "$CF_SRC" "${CF_UPDATE_SCRIPT}"
 
     print_status "Setting up cron job for daily cloudflared update (root crontab)..."
     if ! sudo crontab -l 2>/dev/null | grep -Fq "${CF_UPDATE_SCRIPT}"; then
