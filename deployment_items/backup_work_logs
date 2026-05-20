@@ -6,7 +6,7 @@ set -e
 
 # Configuration
 APP_NAME="work_logs"
-APP_DIR="/home/rob3662/Shared/Projects/webserver/work_logs"
+APP_DIR="/home/rob3662/work_logs"
 BACKUP_DIR="/home/rob3662/backups/work_logs"
 DB_NAME="work_logs_db"
 DB_USER="work_logs_user"
@@ -36,7 +36,7 @@ log_message() {
 
 log_message "=== Starting DB backup for work_logs ==="
 
-DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | sed 's/^DB_PASSWORD=//' | tr -d '"')
+DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
 if [ -z "$DB_PASSWORD" ]; then log_message "ERROR: DB_PASSWORD not found in .env"; exit 1; fi
 
 if PGPASSWORD="$DB_PASSWORD" pg_dump -h localhost -U $DB_USER -d $DB_NAME > "${BACKUP_DIR}/database_backup_$TIMESTAMP.sql"; then

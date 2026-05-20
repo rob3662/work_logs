@@ -14,7 +14,7 @@ APP_NAME="work_logs"
 APP_DIR="/home/rob3662/work_logs"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_RESTORE_DIR="$SCRIPT_DIR/backup_to_restore"
-BACKUP_DIR="/home/${SERVICE_USER}/backups/work_logs"
+BACKUP_DIR="/home/rob3662/backups/work_logs"
 DB_NAME="work_logs_db"
 DB_USER="work_logs_user"
 SERVICE_NAME="work_logs"
@@ -130,7 +130,7 @@ sudo systemctl stop "${SERVICE_NAME}.service" 2>/dev/null || true
 sudo systemctl stop "${SERVICE_NAME}-container.service" 2>/dev/null || true
 sudo systemctl stop "container-${SERVICE_NAME}.service" 2>/dev/null || true
 
-DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | sed 's/^DB_PASSWORD=//' | tr -d '"')
+DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
 PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
 PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d "$DB_NAME" < "$DB_SQL"
