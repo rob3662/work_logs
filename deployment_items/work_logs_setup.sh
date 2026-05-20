@@ -469,7 +469,7 @@ if [ "$IS_PRODUCTION" = true ]; then
     # because the Postgres container is published to 127.0.0.1:5432 by setup_containers_stack.sh.
     print_status "Setting up PostgreSQL database and user..."
     if [ -f "$WORKING_DIR/.env" ]; then
-        DB_PASSWORD=$(grep "^DB_PASSWORD=" "$WORKING_DIR/.env" | cut -d'=' -f2 | tr -d '"')
+        DB_PASSWORD=$(grep "^DB_PASSWORD=" "$WORKING_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
         print_status "Using password from .env file"
     else
         DB_PASSWORD="secure_password_2025"
@@ -557,7 +557,7 @@ else
     # Create database and user for development
     print_status "Setting up PostgreSQL database and user for development..."
     if [ -f "$WORKING_DIR/.env" ]; then
-        DB_PASSWORD=$(grep "^DB_PASSWORD=" "$WORKING_DIR/.env" | cut -d'=' -f2 | tr -d '"')
+        DB_PASSWORD=$(grep "^DB_PASSWORD=" "$WORKING_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
         print_status "Using password from .env file"
     else
         DB_PASSWORD="secure_password_2025"
@@ -710,7 +710,7 @@ log_message() {
 
 log_message "=== Starting DB backup for ${WEBSITE_NAME} ==="
 
-DB_PASSWORD=\$(grep "^DB_PASSWORD=" "\$APP_DIR/.env" | sed 's/^DB_PASSWORD=//' | tr -d '"')
+DB_PASSWORD=\$(grep "^DB_PASSWORD=" "\$APP_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
 if [ -z "\$DB_PASSWORD" ]; then log_message "ERROR: DB_PASSWORD not found in .env"; exit 1; fi
 
 if PGPASSWORD="\$DB_PASSWORD" pg_dump -h localhost -U \$DB_USER -d \$DB_NAME > "\${BACKUP_DIR}/database_backup_\$TIMESTAMP.sql"; then
@@ -886,7 +886,7 @@ sudo systemctl stop "${SERVICE_NAME}.service" 2>/dev/null || true
 sudo systemctl stop "${SERVICE_NAME}-container.service" 2>/dev/null || true
 sudo systemctl stop "container-${SERVICE_NAME}.service" 2>/dev/null || true
 
-DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | sed 's/^DB_PASSWORD=//' | tr -d '"')
+DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
 PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
 PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 PGPASSWORD="$DB_PASSWORD" psql -h localhost -U "$DB_USER" -d "$DB_NAME" < "$DB_SQL"
@@ -1095,15 +1095,18 @@ EOF
         sudo tee /etc/systemd/system/cloudflared-${WEBSITE_NAME}.service > /dev/null << EOF
 [Unit]
 Description=Cloudflare Tunnel (${WEBSITE_NAME})
-After=network.target
+After=network-online.target systemd-resolved.service
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=$SERVICE_USER
 WorkingDirectory=$WORKING_DIR
 ExecStart=${CLOUDFLARED_BIN} tunnel --config /home/$SERVICE_USER/.cloudflared/${WEBSITE_NAME}-config.yml run
-Restart=always
-RestartSec=5
+Restart=on-failure
+RestartSec=30
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Install]
 WantedBy=multi-user.target
@@ -1199,7 +1202,7 @@ try_tar() { tar -xzf "\$1" -C "\$2" 2>/dev/null || tar -xzf "\$1" -C "\$2" --war
 try_tar "\$BACKUP_TAR" "\$TEMP_DIR"
 rsync -a --delete --exclude 'venv' --exclude 'logs' "\$TEMP_DIR/" "\$APP_DIR/"
 
-DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | sed 's/^DB_PASSWORD=//' | tr -d '"')
+DB_PASSWORD=$(grep "^DB_PASSWORD=" "$APP_DIR/.env" | head -n1 | cut -d= -f2- | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/^"//;s/"$//')
 PGPASSWORD="\$DB_PASSWORD" psql -h localhost -U "\$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS \$DB_NAME;"
 PGPASSWORD="\$DB_PASSWORD" psql -h localhost -U "\$DB_USER" -d postgres -c "CREATE DATABASE \$DB_NAME OWNER \$DB_USER;"
 PGPASSWORD="\$DB_PASSWORD" psql -h localhost -U "\$DB_USER" -d "\$DB_NAME" < "\$DB_SQL"
@@ -1471,6 +1474,15 @@ EOF
     fi
     if [ "${HAS_CLOUDFLARE_TUNNEL:-0}" = "1" ]; then
         sudo systemctl start cloudflared-${WEBSITE_NAME}
+    fi
+
+    WEBSERVER_ETC="${WEBSERVER_ETC:-/etc/webserver}"
+    SYNC_SCRIPT="${WEBSERVER_ETC}/sync_postgres_app_passwords.sh"
+    if [ -x "$SYNC_SCRIPT" ]; then
+        print_status "Syncing Postgres role/password from .env (idempotent)..."
+        sudo "$SYNC_SCRIPT" "$WORKING_DIR" || print_warning "Postgres sync failed — run: sudo $SYNC_SCRIPT $WORKING_DIR"
+    else
+        print_warning "Postgres sync script missing — re-run server_bootstrap.sh or install $SYNC_SCRIPT"
     fi
 
     print_status "Host hardening (SELinux booleans, SSH, dnf-automatic, fail2ban, firewalld) is applied by server_bootstrap.sh"
