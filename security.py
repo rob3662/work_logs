@@ -77,9 +77,22 @@ limiter = Limiter(
     storage_uri=get_storage_uri()
 )
 
+MONITORING_PATHS = frozenset(
+    {
+        "/api/healthz",
+        "/healthz",
+        "/robots.txt",
+        "/favicon.ico",
+    }
+)
+
+
 @limiter.request_filter
 def exempt_admin_from_rate_limit():
-    """Globally exempt the site admin user from rate limiting."""
+    """Exempt monitoring probes and the site admin from rate limiting."""
+    path = (request.path or "").rstrip("/") or "/"
+    if path in MONITORING_PATHS or path.endswith("/healthz"):
+        return True
     try:
         from flask_login import current_user
         if current_user.is_authenticated:
