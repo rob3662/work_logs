@@ -75,6 +75,16 @@ body {
     transition: all 0.15s ease-in-out;
 }
 
+/* Match full-width action buttons to adjacent .form-control height */
+.form-controls-row > [class*="col-"] > .btn {
+    height: calc(1.5em + 0.75rem + 2px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);

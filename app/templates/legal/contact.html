@@ -16,8 +16,11 @@ Unauthorized use, modification, or distribution is strictly prohibited.
       <div class="card h-100 border">
         <div class="card-body">
           <h2 class="h5 card-title">General support</h2>
-          <p class="card-text small mb-2">Include what you were trying to do and, if relevant, the session or report date range.</p>
-          <p class="mb-0"><a class="btn btn-primary" href="mailto:{{ CONTACT_US_EMAIL }}?subject={{ ('Question about ' ~ app_name)|urlencode }}">{{ CONTACT_US_EMAIL }}</a></p>
+          <p class="card-text small mb-3">Include what you were trying to do and, if relevant, the session or report date range.</p>
+          <a class="btn btn-primary" href="mailto:{{ CONTACT_US_EMAIL }}?subject={{ ('Question about ' ~ app_name)|urlencode }}">Email support</a>
+          <p class="mb-0 mt-2">
+            <a class="small text-break" href="mailto:{{ CONTACT_US_EMAIL }}?subject={{ ('Question about ' ~ app_name)|urlencode }}">{{ CONTACT_US_EMAIL }}</a>
+          </p>
           <p class="form-text small mb-0 mt-2">This opens your default email program. If nothing happens, set a mail handler in your browser or OS (mailto links need an email app).</p>
         </div>
       </div>
