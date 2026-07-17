@@ -4,7 +4,7 @@ This file is part of a proprietary software project.
 Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +12,20 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <meta name="description" content="{% block description %}{{ app_name }}{% endblock %}">
     <link rel="canonical" href="{{ canonical_url }}">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <script>
+    (function () {
+        try {
+            var t = localStorage.getItem('theme') || 'light';
+            if (t === 'auto') {
+                t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            } else if (t !== 'dark') {
+                t = 'light';
+            }
+            document.documentElement.setAttribute('data-theme', t);
+            document.documentElement.setAttribute('data-bs-theme', t);
+        } catch (e) { /* ignore */ }
+    })();
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/styles.css') }}?v={{ assets_version }}" rel="stylesheet">
@@ -20,15 +34,12 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
     <div class="container">
         <a class="navbar-brand" href="{{ url_for('main.index') }}">{{ app_name }}</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
+                aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navMain">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.about') }}">About</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.how_it_works') }}">How it works</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.faq') }}">FAQ</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
+            <ul class="navbar-nav ms-auto align-items-lg-center">
                 {% if current_user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('work.sessions_list') }}">Work log</a></li>
@@ -41,10 +52,16 @@ Unauthorized use, modification, or distribution is strictly prohibited.
                 {% endif %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
                 {% else %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.about') }}">About</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.how_it_works') }}">How it works</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.faq') }}">FAQ</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">Register</a></li>
                 {% endif %}
-                <li class="nav-item"><button type="button" class="btn btn-outline-light btn-sm ms-2" onclick="toggleTheme()">Theme</button></li>
+                <li class="nav-item ms-lg-2">
+                    <button type="button" class="btn btn-outline-light btn-sm" onclick="toggleTheme()" aria-label="Toggle color theme">Theme</button>
+                </li>
             </ul>
         </div>
     </div>

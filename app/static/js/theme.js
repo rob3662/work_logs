@@ -7,35 +7,40 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 // Theme management and utility functions for web apps
 
 // Theme functionality
+function resolveTheme(theme) {
+    if (theme === 'auto') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return theme === 'dark' ? 'dark' : 'light';
+}
+
 function toggleTheme() {
     const currentTheme = localStorage.getItem('theme') || 'light';
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    const newTheme = resolveTheme(currentTheme) === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', newTheme);
     applyTheme(newTheme);
 }
 
 function applyTheme(theme) {
-    if (theme === 'auto') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    } else {
-        document.documentElement.setAttribute('data-theme', theme);
-    }
-    
-    // Update theme icon
+    const effective = resolveTheme(theme);
+    const root = document.documentElement;
+    // data-theme: custom CSS; data-bs-theme: Bootstrap 5.3 color modes
+    root.setAttribute('data-theme', effective);
+    root.setAttribute('data-bs-theme', effective);
+
     const themeIcon = document.getElementById('theme-icon');
     if (themeIcon) {
-        themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        themeIcon.className = effective === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 }
 
-// Initialize theme on page load
+// Apply as soon as this script runs (end of body) so paint matches preference
+applyTheme(localStorage.getItem('theme') || 'light');
+
 document.addEventListener('DOMContentLoaded', function() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    applyTheme(savedTheme);
-    
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    applyTheme(localStorage.getItem('theme') || 'light');
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
         if (localStorage.getItem('theme') === 'auto') {
             applyTheme('auto');
         }
