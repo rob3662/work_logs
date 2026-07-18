@@ -7,18 +7,18 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block title %}Session — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-  <div>
+  <div class="me-sm-2">
     <h1 class="mb-1">{{ session.project }}</h1>
     <p class="text-muted mb-0">{{ session.work_date }} · {{ (session.start_time|string)[:5] }}{% if session.end_time %} – {{ (session.end_time|string)[:5] }}{% else %} · <span class="badge text-bg-warning">Open</span>{% endif %}</p>
   </div>
-  <div class="d-flex flex-wrap gap-2">
+  <div class="d-grid gap-3 d-sm-flex flex-sm-wrap gap-sm-2 w-100 w-sm-auto">
     {% if can_edit %}
     <a class="btn btn-outline-secondary" href="{{ url_for('work.session_edit', session_id=session.id) }}">Edit</a>
     {% endif %}
     {% if can_delete_session %}
-    <form method="post" action="{{ url_for('work.session_delete', session_id=session.id) }}" class="d-inline" onsubmit="return confirm('Delete this session and all its tasks, income lines, and expense lines? This cannot be undone.');">
+    <form method="post" action="{{ url_for('work.session_delete', session_id=session.id) }}" class="d-grid d-sm-inline" onsubmit="return confirm('Delete this session and all its tasks, income lines, and expense lines? This cannot be undone.');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <button type="submit" class="btn btn-outline-danger">Delete</button>
+      <button type="submit" class="btn btn-outline-danger w-100">Delete</button>
     </form>
     {% endif %}
     <a class="btn btn-outline-primary" href="{{ url_for('work.sessions_list') }}">All sessions</a>
@@ -161,18 +161,22 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% if tasks %}
 <ul class="list-group mb-3">
   {% for t in tasks %}
-  <li class="list-group-item d-flex justify-content-between gap-2 flex-wrap align-items-center">
-    <span>{{ t.task_text }}</span>
-    <span class="d-flex align-items-center gap-2 flex-wrap">
-      <span class="text-muted small">{% if t.added_by_username %}{{ t.added_by_username }}{% else %}—{% endif %}</span>
-      {% if t.user_id == current_user.id or current_user.is_admin %}
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('work.task_edit', session_id=session.id, task_id=t.id) }}">Edit</a>
-      <form method="post" action="{{ url_for('work.task_delete', session_id=session.id, task_id=t.id) }}" class="d-inline" onsubmit="return confirm('Remove this task?');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-      </form>
-      {% endif %}
-    </span>
+  <li class="list-group-item">
+    <div class="d-flex flex-column flex-sm-row justify-content-sm-between gap-3 align-items-sm-center">
+      <span class="flex-grow-1">{{ t.task_text }}</span>
+      <div class="d-flex flex-wrap align-items-center gap-3">
+        <span class="text-muted small">{% if t.added_by_username %}{{ t.added_by_username }}{% else %}—{% endif %}</span>
+        {% if t.user_id == current_user.id or current_user.is_admin %}
+        <div class="d-grid gap-3 d-sm-flex gap-sm-2">
+          <a class="btn btn-outline-secondary" href="{{ url_for('work.task_edit', session_id=session.id, task_id=t.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('work.task_delete', session_id=session.id, task_id=t.id) }}" class="d-grid d-sm-inline" onsubmit="return confirm('Remove this task?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-outline-danger w-100">Delete</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </li>
   {% endfor %}
 </ul>

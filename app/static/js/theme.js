@@ -45,21 +45,51 @@ document.addEventListener('DOMContentLoaded', function() {
             applyTheme('auto');
         }
     });
+
+    // Flash / dismissible alerts: auto-close after a few seconds unless the user dismisses sooner
+    document.querySelectorAll('main .alert.alert-dismissible').forEach(function (el) {
+        scheduleAlertAutoDismiss(el);
+    });
 });
+
+const ALERT_AUTO_DISMISS_MS = 5000;
+
+function scheduleAlertAutoDismiss(alertEl, delayMs) {
+    if (!alertEl || alertEl.dataset.autoDismissScheduled === '1') {
+        return;
+    }
+    // Keep error/danger alerts until the user closes them
+    if (alertEl.classList.contains('alert-danger')) {
+        return;
+    }
+    alertEl.dataset.autoDismissScheduled = '1';
+    const ms = typeof delayMs === 'number' ? delayMs : ALERT_AUTO_DISMISS_MS;
+    window.setTimeout(function () {
+        if (!alertEl.isConnected) {
+            return;
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+            bootstrap.Alert.getOrCreateInstance(alertEl).close();
+        } else {
+            alertEl.remove();
+        }
+    }, ms);
+}
 
 // Utility functions
 function showAlert(message, type = 'info') {
     const alertContainer = document.createElement('div');
     alertContainer.className = `alert alert-${type} alert-dismissible fade show`;
+    alertContainer.setAttribute('role', 'alert');
     alertContainer.innerHTML = `
         ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
-    
-    // Insert at the top of the main content
+
     const main = document.querySelector('main');
     if (main) {
         main.insertBefore(alertContainer, main.firstChild);
+        scheduleAlertAutoDismiss(alertContainer);
     }
 }
 
