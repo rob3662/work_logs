@@ -1060,9 +1060,9 @@ Pull=never
 Network=webserver-net
 User=${DEPLOY_UID}
 Group=${DEPLOY_GID}
-# Ensure external SMTP hostnames resolve from inside the container.
-DNS=1.1.1.1
-DNS=8.8.8.8
+# Do not set DNS= here. Public resolvers replace aardvark-dns and break
+# web-postgres / web-redis. External names are forwarded by aardvark
+# using webserver-net DNS servers (set in server_bootstrap.sh).
 Volume=$WORKING_DIR:/opt/${WEBSITE_NAME}:Z
 PublishPort=127.0.0.1:${WEBSITE_PORT}:${WEBSITE_PORT}
 Environment=DB_HOST=web-postgres
