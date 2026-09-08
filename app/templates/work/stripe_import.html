@@ -1,0 +1,169 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Import Stripe — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="mb-0">Import Stripe</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('work.sessions_list') }}">Back to work log</a>
+</div>
+
+<p class="text-muted mb-2">
+  Upload one or both Stripe Dashboard CSVs (either alone is fine):
+</p>
+<ul class="text-muted">
+  <li><strong>Unified payments</strong> — customer charges: gross → income, processing fee → expense.</li>
+  <li><strong>Balance history</strong> — Stripe billing/usage fees → expense only (charge rows skipped).</li>
+</ul>
+<p class="text-muted small">Files are processed in memory and not stored. New rows default to a 0-hour session; same-day rows with the same project share one session.</p>
+
+<form method="post" action="{{ url_for('work.stripe_import_analyze') }}" enctype="multipart/form-data" class="card card-body mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label" for="payments_csv">Unified payments CSV (optional)</label>
+      <input class="form-control" type="file" id="payments_csv" name="payments_csv" accept=".csv,text/csv">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="balance_csv">Balance history CSV (optional)</label>
+      <input class="form-control" type="file" id="balance_csv" name="balance_csv" accept=".csv,text/csv">
+    </div>
+  </div>
+  <p class="form-text">Provide at least one file.</p>
+  <button type="submit" class="btn btn-primary mt-2">Analyze</button>
+</form>
+
+{% if parse_errors %}
+<div class="alert alert-warning">
+  <strong>Parse notes:</strong>
+  <ul class="mb-0">
+    {% for e in parse_errors %}
+    <li>{{ e }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if review_rows %}
+<form method="post" action="{{ url_for('work.stripe_import_apply') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <h2 class="h5 mb-0">
+      Review ({{ review_rows|length }})
+      {% if import_kind == 'combined' %}
+      <span class="badge text-bg-secondary">Payments + balance fees</span>
+      {% elif import_kind == 'balance_history' %}
+      <span class="badge text-bg-secondary">Balance history fees</span>
+      {% else %}
+      <span class="badge text-bg-secondary">Unified payments</span>
+      {% endif %}
+    </h2>
+    <button type="submit" class="btn btn-success">Apply selected</button>
+  </div>
+  <p class="small text-muted mb-2">
+    Defaults to <strong>Create session</strong> (0 hours). Same date + project share one session.
+    Matched rows are skipped unless you check <em>Force update</em>.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Details</th>
+          <th>Gross / expense</th>
+          <th>Fee</th>
+          <th>Net</th>
+          <th>Status</th>
+          <th>Session</th>
+          <th>Force</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in review_rows %}
+        {% set i = loop.index0 %}
+        {% set is_fee = r.row_kind == 'balance_fee' %}
+        <tr>
+          <td>
+            <input class="form-check-input" type="checkbox" name="row_index" value="{{ i }}"
+                   id="row_{{ i }}"
+                   {% if r.status != 'matched' %}checked{% endif %}>
+          </td>
+          <td>
+            <label class="form-check-label" for="row_{{ i }}">{{ r.work_date }}</label>
+            <div class="small text-muted text-break">{{ r.stripe_charge_id }}</div>
+          </td>
+          <td>
+            {% if is_fee %}
+            <span class="badge text-bg-warning">Billing fee</span>
+            {% else %}
+            <span class="badge text-bg-info">Payment</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if is_fee %}
+            {{ r.description or '—' }}
+            <div class="small text-muted">{{ r.project or 'Stripe fees' }}</div>
+            {% else %}
+            {{ r.statement_descriptor or '—' }}
+            {% if r.customer_email %}<div class="small text-muted">{{ r.customer_email }}</div>{% endif %}
+            {% if r.description %}<div class="small text-muted">{{ r.description }}</div>{% endif %}
+            {% endif %}
+          </td>
+          <td>
+            {% if is_fee %}
+            {{ r.expense_amount or r.fee_amount }}
+            {% else %}
+            {{ r.gross_amount }}
+            {% endif %}
+            {% if r.currency %}<span class="text-muted">{{ r.currency }}</span>{% endif %}
+          </td>
+          <td>{% if is_fee %}—{% else %}{{ r.fee_amount }}{% endif %}</td>
+          <td>{% if is_fee %}{{ r.net or r.net_amount }}{% else %}{{ r.net_amount }}{% endif %}</td>
+          <td>
+            {% if r.status == 'matched' %}
+            <span class="badge text-bg-success">{{ r.status_label }}</span>
+            {% elif r.status == 'mismatch' %}
+            <span class="badge text-bg-warning">{{ r.status_label }}</span>
+            {% elif r.status == 'missing' %}
+            <span class="badge text-bg-primary">{{ r.status_label }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ r.status_label }}</span>
+            {% endif %}
+            {% if r.existing_fee %}
+            <div class="small text-muted">Stored {{ r.existing_fee }}{% if r.existing_gross %} / gross {{ r.existing_gross }}{% endif %}</div>
+            {% endif %}
+          </td>
+          <td style="min-width: 12rem;">
+            <select class="form-select form-select-sm" name="session_id_{{ i }}">
+              <option value="__create__" {% if r.status == 'missing' or not r.suggested_session_id %}selected{% endif %}>
+                Create session ({{ r.work_date }}, 0h — group same-day)
+              </option>
+              {% for s in sessions %}
+              <option value="{{ s.id }}"
+                {% if r.suggested_session_id and r.suggested_session_id == s.id and r.status != 'missing' %}selected{% endif %}>
+                {{ s.work_date }} — {{ s.project }} (#{{ s.id }})
+              </option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            {% if r.status == 'matched' or r.status == 'mismatch' %}
+            <input class="form-check-input" type="checkbox" name="force_{{ i }}" value="1" title="Force update">
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <button type="submit" class="btn btn-success">Apply selected</button>
+</form>
+{% endif %}
+{% endblock %}

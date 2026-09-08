@@ -8,7 +8,10 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h1 class="mb-0">Work sessions</h1>
-  <a class="btn btn-primary" href="{{ url_for('work.session_new') }}">Start session</a>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('work.stripe_import') }}">Import Stripe</a>
+    <a class="btn btn-primary" href="{{ url_for('work.session_new') }}">Start session</a>
+  </div>
 </div>
 {% if sessions %}
 <div class="table-responsive">

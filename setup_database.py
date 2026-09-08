@@ -301,6 +301,24 @@ def init_db() -> None:
             """,
             fetch_all=False,
         )
+        _ensure_column(
+            "work_expense_items",
+            "stripe_charge_id",
+            "ALTER TABLE work_expense_items ADD COLUMN stripe_charge_id TEXT;",
+        )
+        _ensure_column(
+            "work_expense_items",
+            "source",
+            "ALTER TABLE work_expense_items ADD COLUMN source TEXT;",
+        )
+        execute_query(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_work_expense_items_tenant_stripe_charge
+            ON work_expense_items (tenant_id, stripe_charge_id)
+            WHERE stripe_charge_id IS NOT NULL AND btrim(stripe_charge_id) <> '';
+            """,
+            fetch_all=False,
+        )
 
         execute_query(
             """
@@ -320,6 +338,49 @@ def init_db() -> None:
             """
             CREATE INDEX IF NOT EXISTS idx_work_income_items_session
             ON work_income_items (session_id);
+            """,
+            fetch_all=False,
+        )
+        _ensure_column(
+            "work_income_items",
+            "fee_amount",
+            "ALTER TABLE work_income_items ADD COLUMN fee_amount NUMERIC(12,2);",
+        )
+        _ensure_column(
+            "work_income_items",
+            "stripe_charge_id",
+            "ALTER TABLE work_income_items ADD COLUMN stripe_charge_id TEXT;",
+        )
+        _ensure_column(
+            "work_income_items",
+            "statement_descriptor",
+            "ALTER TABLE work_income_items ADD COLUMN statement_descriptor TEXT;",
+        )
+        _ensure_column(
+            "work_income_items",
+            "currency",
+            "ALTER TABLE work_income_items ADD COLUMN currency TEXT;",
+        )
+        _ensure_column(
+            "work_income_items",
+            "customer_email",
+            "ALTER TABLE work_income_items ADD COLUMN customer_email TEXT;",
+        )
+        _ensure_column(
+            "work_income_items",
+            "stripe_status",
+            "ALTER TABLE work_income_items ADD COLUMN stripe_status TEXT;",
+        )
+        _ensure_column(
+            "work_income_items",
+            "source",
+            "ALTER TABLE work_income_items ADD COLUMN source TEXT;",
+        )
+        execute_query(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_work_income_items_tenant_stripe_charge
+            ON work_income_items (tenant_id, stripe_charge_id)
+            WHERE stripe_charge_id IS NOT NULL AND btrim(stripe_charge_id) <> '';
             """,
             fetch_all=False,
         )

@@ -84,7 +84,16 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   <li class="list-group-item d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
       <strong>{{ e.amount }}</strong>
+      {% if e.fee_amount is not none %}
+      <span class="text-muted small">
+        (gross {{ e.amount }}; fee {{ e.fee_amount }};
+        net {{ e.amount - e.fee_amount }})
+      </span>
+      {% endif %}
       {% if e.description %}<span class="text-muted"> — {{ e.description }}</span>{% endif %}
+      {% if e.stripe_charge_id %}
+      <div class="small text-muted">Stripe {{ e.stripe_charge_id }}{% if e.currency %} · {{ e.currency }}{% endif %}</div>
+      {% endif %}
     </div>
     {% if can_edit %}
     <form method="post" action="{{ url_for('work.session_delete_income', session_id=session.id, income_id=e.id) }}" class="d-inline" onsubmit="return confirm('Remove this income line?');">

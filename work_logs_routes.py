@@ -13,7 +13,16 @@ import os
 from datetime import date, datetime, time as time_type, timedelta
 from decimal import Decimal, InvalidOperation
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session as flask_session,
+    url_for,
+)
 from flask_login import current_user, login_required
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, letter
@@ -25,6 +34,18 @@ from database import execute_query
 from email_service import send_template_email
 from invites import create_invite, list_invites_for_tenant, revoke_invite
 from security import log_security_event, rate_limit, sanitize_input
+from stripe_payments_import import (
+    DEFAULT_BALANCE_FEE_PROJECT,
+    MAX_CSV_BYTES,
+    StripeBalanceFeeRow,
+    StripePaymentRow,
+    build_balance_fee_review_rows,
+    build_review_rows,
+    detect_stripe_csv_kind,
+    normalize_descriptor,
+    parse_balance_history_csv,
+    parse_unified_payments_csv,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -472,7 +493,7 @@ def session_detail(session_id: int):
     )
     expense_items = execute_query(
         """
-        SELECT id, amount, description, created_at
+        SELECT id, amount, description, stripe_charge_id, source, created_at
         FROM work_expense_items
         WHERE tenant_id = %s AND session_id = %s
         ORDER BY id ASC
@@ -482,7 +503,8 @@ def session_detail(session_id: int):
     )
     income_items = execute_query(
         """
-        SELECT id, amount, description, created_at
+        SELECT id, amount, description, fee_amount, stripe_charge_id, currency,
+               statement_descriptor, customer_email, source, created_at
         FROM work_income_items
         WHERE tenant_id = %s AND session_id = %s
         ORDER BY id ASC
@@ -768,7 +790,7 @@ def session_delete_income(session_id: int, income_id: int):
         return redirect(url_for("work.session_detail", session_id=session_id))
     row = execute_query(
         """
-        SELECT id FROM work_income_items
+        SELECT id, stripe_charge_id FROM work_income_items
         WHERE id = %s AND tenant_id = %s AND session_id = %s
         LIMIT 1
         """,
@@ -778,6 +800,7 @@ def session_delete_income(session_id: int, income_id: int):
     if not row:
         flash("Income line not found.", "error")
         return redirect(url_for("work.session_detail", session_id=session_id))
+    charge_id = (row.get("stripe_charge_id") or "").strip()
     execute_query(
         """
         DELETE FROM work_income_items
@@ -786,6 +809,16 @@ def session_delete_income(session_id: int, income_id: int):
         (income_id, current_user.tenant_id, session_id),
         fetch_all=False,
     )
+    if charge_id:
+        execute_query(
+            """
+            DELETE FROM work_expense_items
+            WHERE tenant_id = %s AND session_id = %s AND stripe_charge_id = %s
+            """,
+            (current_user.tenant_id, session_id, charge_id),
+            fetch_all=False,
+        )
+        _recompute_session_expenses_from_lines(current_user.tenant_id, session_id)
     _recompute_session_income_from_lines(current_user.tenant_id, session_id)
     flash("Income line removed.", "success")
     return redirect(url_for("work.session_detail", session_id=session_id))
@@ -1423,3 +1456,753 @@ def team_invite_revoke(invite_id: int):
     ok, msg = revoke_invite(current_user.tenant_id, invite_id, current_user.id)
     flash(msg, "success" if ok else "error")
     return redirect(url_for("work.team_invites"))
+
+
+def _tenant_sessions_for_import(tenant_id: int) -> list:
+    rows = execute_query(
+        """
+        SELECT id, project, work_date, hours_worked, end_time
+        FROM work_sessions
+        WHERE tenant_id = %s
+        ORDER BY work_date DESC, id DESC
+        LIMIT 500
+        """,
+        (tenant_id,),
+        fetch_all=True,
+    )
+    return rows or []
+
+
+def _tenant_stripe_income_rows(tenant_id: int) -> list:
+    rows = execute_query(
+        """
+        SELECT id, session_id, amount, fee_amount, stripe_charge_id, statement_descriptor
+        FROM work_income_items
+        WHERE tenant_id = %s
+          AND (stripe_charge_id IS NOT NULL OR statement_descriptor IS NOT NULL)
+        ORDER BY id DESC
+        LIMIT 2000
+        """,
+        (tenant_id,),
+        fetch_all=True,
+    )
+    return rows or []
+
+
+def _tenant_stripe_expense_rows(tenant_id: int) -> list:
+    rows = execute_query(
+        """
+        SELECT id, session_id, amount, stripe_charge_id, description, source
+        FROM work_expense_items
+        WHERE tenant_id = %s
+          AND stripe_charge_id IS NOT NULL
+          AND btrim(stripe_charge_id) <> ''
+        ORDER BY id DESC
+        LIMIT 2000
+        """,
+        (tenant_id,),
+        fetch_all=True,
+    )
+    return rows or []
+
+
+def _apply_stripe_balance_fee_row(
+    tenant_id: int,
+    user_id: int,
+    payment: dict,
+    session_id: int | None,
+    create_session: bool,
+) -> tuple[bool, str, int | None]:
+    """Insert or update an expense-only Stripe balance fee (txn_…)."""
+    txn_id = sanitize_input((payment.get("stripe_txn_id") or payment.get("stripe_charge_id") or "").strip(), max_length=200)
+    if not txn_id:
+        return False, "Missing transaction id.", None
+
+    try:
+        expense = Decimal(str(payment.get("expense_amount") or payment.get("fee_amount") or "").strip()).quantize(
+            Decimal("0.01")
+        )
+    except (InvalidOperation, ValueError):
+        return False, f"{txn_id}: invalid expense amount.", None
+    if expense <= 0:
+        return False, f"{txn_id}: expense must be positive.", None
+
+    work_date = _parse_date(payment.get("work_date", ""))
+    if not work_date:
+        return False, f"{txn_id}: invalid work date.", None
+
+    project_hint = sanitize_input(
+        (payment.get("project") or payment.get("statement_descriptor") or DEFAULT_BALANCE_FEE_PROJECT).strip(),
+        max_length=200,
+    ) or DEFAULT_BALANCE_FEE_PROJECT
+    project = _canonical_project_name(tenant_id, project_hint)
+    description = sanitize_input(
+        (payment.get("description") or "").strip() or f"Stripe fee {txn_id}",
+        max_length=500,
+    )
+    now = datetime.utcnow()
+
+    target_session_id = session_id
+    if create_session or not target_session_id:
+        new_id = _create_import_session(tenant_id, user_id, project, work_date)
+        if not new_id:
+            return False, f"{txn_id}: could not create session.", None
+        target_session_id = new_id
+    else:
+        sess = _get_session(tenant_id, target_session_id)
+        if not sess:
+            return False, f"{txn_id}: session not found.", None
+        if not _can_edit_session(sess):
+            return False, f"{txn_id}: cannot edit that session.", None
+
+    existing = execute_query(
+        """
+        SELECT id, session_id FROM work_expense_items
+        WHERE tenant_id = %s AND stripe_charge_id = %s
+        LIMIT 1
+        """,
+        (tenant_id, txn_id),
+        fetch_one=True,
+    )
+    if existing:
+        old_session = int(existing["session_id"])
+        execute_query(
+            """
+            UPDATE work_expense_items
+            SET amount = %s, description = %s, source = %s,
+                session_id = %s, updated_at = %s
+            WHERE id = %s AND tenant_id = %s
+            """,
+            (
+                expense,
+                description,
+                "stripe_balance_csv",
+                target_session_id,
+                now,
+                int(existing["id"]),
+                tenant_id,
+            ),
+            fetch_all=False,
+        )
+        for sid in {old_session, target_session_id}:
+            _recompute_session_expenses_from_lines(tenant_id, sid)
+        return True, f"{txn_id}: updated", target_session_id
+
+    execute_query(
+        """
+        INSERT INTO work_expense_items (
+            tenant_id, session_id, amount, description,
+            stripe_charge_id, source, created_at, updated_at
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            tenant_id,
+            target_session_id,
+            expense,
+            description,
+            txn_id,
+            "stripe_balance_csv",
+            now,
+            now,
+        ),
+        fetch_all=False,
+    )
+    _recompute_session_expenses_from_lines(tenant_id, target_session_id)
+    return True, f"{txn_id}: added", target_session_id
+
+
+def _canonical_project_name(tenant_id: int, descriptor: str) -> str:
+    """
+    Prefer an existing work_sessions.project casing that matches the Stripe
+    statement descriptor (casefold + whitespace). Falls back to descriptor.
+    """
+    raw = (descriptor or "").strip()
+    if not raw:
+        return "Stripe payment"
+    norm = normalize_descriptor(raw)
+    if not norm:
+        return raw
+    rows = execute_query(
+        """
+        SELECT project
+        FROM work_sessions
+        WHERE tenant_id = %s AND btrim(project) <> ''
+        ORDER BY work_date DESC, id DESC
+        LIMIT 500
+        """,
+        (tenant_id,),
+        fetch_all=True,
+    )
+    for row in rows or []:
+        project = (row.get("project") or "").strip()
+        if project and normalize_descriptor(project) == norm:
+            return project
+    return raw
+
+
+def _create_import_session(
+    tenant_id: int,
+    user_id: int,
+    project: str,
+    work_date: date,
+) -> int | None:
+    """Closed zero-hour session for Stripe payments with no matching session."""
+    midnight = time_type(0, 0)
+    now = datetime.utcnow()
+    row = execute_query(
+        """
+        INSERT INTO work_sessions (
+            tenant_id, user_id, project, work_date, start_time, end_time,
+            hours_worked, notes, income, expenses, ended_by_user_id, created_at, updated_at
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s, %s, %s)
+        RETURNING id
+        """,
+        (
+            tenant_id,
+            user_id,
+            project,
+            work_date,
+            midnight,
+            midnight,
+            Decimal("0.00"),
+            "Created from Stripe CSV import",
+            user_id,
+            now,
+            now,
+        ),
+        fetch_one=True,
+    )
+    return int(row["id"]) if row else None
+
+
+def _apply_stripe_payment_row(
+    tenant_id: int,
+    user_id: int,
+    payment: dict,
+    session_id: int | None,
+    create_session: bool,
+) -> tuple[bool, str, int | None]:
+    """
+    Insert or update income (gross) + expense (fee) for one Stripe charge.
+    Returns (ok, message, session_id).
+    """
+    charge_id = sanitize_input((payment.get("stripe_charge_id") or "").strip(), max_length=200)
+    if not charge_id:
+        return False, "Missing charge id.", None
+
+    try:
+        gross = Decimal(str(payment.get("gross_amount", "")).strip()).quantize(Decimal("0.01"))
+        fee = Decimal(str(payment.get("fee_amount", "0")).strip() or "0").quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return False, f"{charge_id}: invalid amounts.", None
+
+    if gross <= 0:
+        return False, f"{charge_id}: gross must be positive.", None
+    if fee < 0:
+        fee = Decimal("0.00")
+
+    work_date = _parse_date(payment.get("work_date", ""))
+    if not work_date:
+        return False, f"{charge_id}: invalid work date.", None
+
+    descriptor = sanitize_input(
+        (payment.get("statement_descriptor") or "").strip(),
+        max_length=200,
+    )
+    project = _canonical_project_name(tenant_id, descriptor)
+    description = sanitize_input(
+        (payment.get("description") or "").strip() or f"Stripe {charge_id}",
+        max_length=500,
+    )
+    currency = sanitize_input((payment.get("currency") or "").strip().upper(), max_length=10)
+    customer_email = sanitize_input((payment.get("customer_email") or "").strip(), max_length=320)
+    stripe_status = sanitize_input(
+        (payment.get("stripe_status") or payment.get("status") or "").strip(),
+        max_length=80,
+    )
+    now = datetime.utcnow()
+
+    target_session_id = session_id
+    if create_session or not target_session_id:
+        new_id = _create_import_session(tenant_id, user_id, project, work_date)
+        if not new_id:
+            return False, f"{charge_id}: could not create session.", None
+        target_session_id = new_id
+    else:
+        sess = _get_session(tenant_id, target_session_id)
+        if not sess:
+            return False, f"{charge_id}: session not found.", None
+        if not _can_edit_session(sess):
+            return False, f"{charge_id}: cannot edit that session.", None
+
+    existing = execute_query(
+        """
+        SELECT id, session_id FROM work_income_items
+        WHERE tenant_id = %s AND stripe_charge_id = %s
+        LIMIT 1
+        """,
+        (tenant_id, charge_id),
+        fetch_one=True,
+    )
+
+    if existing:
+        income_session = int(existing["session_id"])
+        execute_query(
+            """
+            UPDATE work_income_items
+            SET amount = %s, fee_amount = %s, description = %s,
+                statement_descriptor = %s, currency = %s, customer_email = %s,
+                stripe_status = %s, source = %s, updated_at = %s,
+                session_id = %s
+            WHERE id = %s AND tenant_id = %s
+            """,
+            (
+                gross,
+                fee,
+                description,
+                descriptor,
+                currency,
+                customer_email,
+                stripe_status,
+                "stripe_csv",
+                now,
+                target_session_id,
+                int(existing["id"]),
+                tenant_id,
+            ),
+            fetch_all=False,
+        )
+        fee_desc = sanitize_input(f"Stripe fee ({charge_id})", max_length=500)
+        exp = execute_query(
+            """
+            SELECT id, session_id FROM work_expense_items
+            WHERE tenant_id = %s AND stripe_charge_id = %s
+            LIMIT 1
+            """,
+            (tenant_id, charge_id),
+            fetch_one=True,
+        )
+        if fee > 0:
+            if exp:
+                execute_query(
+                    """
+                    UPDATE work_expense_items
+                    SET amount = %s, description = %s, source = %s,
+                        session_id = %s, updated_at = %s
+                    WHERE id = %s AND tenant_id = %s
+                    """,
+                    (
+                        fee,
+                        fee_desc,
+                        "stripe_csv",
+                        target_session_id,
+                        now,
+                        int(exp["id"]),
+                        tenant_id,
+                    ),
+                    fetch_all=False,
+                )
+            else:
+                execute_query(
+                    """
+                    INSERT INTO work_expense_items (
+                        tenant_id, session_id, amount, description,
+                        stripe_charge_id, source, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        tenant_id,
+                        target_session_id,
+                        fee,
+                        fee_desc,
+                        charge_id,
+                        "stripe_csv",
+                        now,
+                        now,
+                    ),
+                    fetch_all=False,
+                )
+        elif exp:
+            execute_query(
+                """
+                DELETE FROM work_expense_items
+                WHERE id = %s AND tenant_id = %s
+                """,
+                (int(exp["id"]), tenant_id),
+                fetch_all=False,
+            )
+
+        sessions_to_fix = {income_session, target_session_id}
+        if exp:
+            sessions_to_fix.add(int(exp["session_id"]))
+        for sid in sessions_to_fix:
+            _recompute_session_income_from_lines(tenant_id, sid)
+            _recompute_session_expenses_from_lines(tenant_id, sid)
+        return True, f"{charge_id}: updated", target_session_id
+
+    execute_query(
+        """
+        INSERT INTO work_income_items (
+            tenant_id, session_id, amount, description, fee_amount,
+            stripe_charge_id, statement_descriptor, currency, customer_email,
+            stripe_status, source, created_at, updated_at
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            tenant_id,
+            target_session_id,
+            gross,
+            description,
+            fee,
+            charge_id,
+            descriptor,
+            currency,
+            customer_email,
+            stripe_status,
+            "stripe_csv",
+            now,
+            now,
+        ),
+        fetch_all=False,
+    )
+    if fee > 0:
+        fee_desc = sanitize_input(f"Stripe fee ({charge_id})", max_length=500)
+        execute_query(
+            """
+            INSERT INTO work_expense_items (
+                tenant_id, session_id, amount, description,
+                stripe_charge_id, source, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                tenant_id,
+                target_session_id,
+                fee,
+                fee_desc,
+                charge_id,
+                "stripe_csv",
+                now,
+                now,
+            ),
+            fetch_all=False,
+        )
+    _recompute_session_income_from_lines(tenant_id, target_session_id)
+    _recompute_session_expenses_from_lines(tenant_id, target_session_id)
+    return True, f"{charge_id}: added", target_session_id
+
+
+def _read_upload_csv(upload) -> bytes | None:
+    """Return CSV bytes or None if empty/missing. Raises ValueError on bad input."""
+    if not upload or not getattr(upload, "filename", None):
+        return None
+    filename = upload.filename.lower()
+    if not filename.endswith(".csv"):
+        raise ValueError(f"{upload.filename}: upload a .csv file.")
+    data = upload.read(MAX_CSV_BYTES + 1)
+    if len(data) > MAX_CSV_BYTES:
+        raise ValueError(
+            f"{upload.filename}: file too large (max {MAX_CSV_BYTES // (1024 * 1024)} MB)."
+        )
+    if not data:
+        raise ValueError(f"{upload.filename}: empty file.")
+    return data
+
+
+def _refresh_stripe_review(review_rows: list, tid: int) -> list:
+    """Rebuild review statuses from the last analyzed payload (payments + fees)."""
+    payment_src = [r for r in review_rows if r.get("row_kind") != "balance_fee"]
+    fee_src = [r for r in review_rows if r.get("row_kind") == "balance_fee"]
+    out: list = []
+
+    if payment_src:
+        payments = [
+            StripePaymentRow(
+                stripe_charge_id=r["stripe_charge_id"],
+                created_at_utc=r["created_at_utc"],
+                work_date=r["work_date"],
+                gross_amount=r["gross_amount"]
+                if r.get("gross_amount") not in (None, "—")
+                else "0.00",
+                fee_amount=r["fee_amount"],
+                net_amount=r["net_amount"],
+                currency=r.get("currency") or "",
+                status=r.get("stripe_status") or "Paid",
+                description=r.get("description") or "",
+                statement_descriptor=r.get("statement_descriptor") or "",
+                customer_email=r.get("customer_email") or "",
+                amount_refunded=r.get("amount_refunded") or "0.00",
+            )
+            for r in payment_src
+        ]
+        out.extend(
+            build_review_rows(
+                payments,
+                sessions=_tenant_sessions_for_import(tid),
+                income_rows=_tenant_stripe_income_rows(tid),
+            )
+        )
+
+    if fee_src:
+        fees = [
+            StripeBalanceFeeRow(
+                stripe_txn_id=r.get("stripe_txn_id") or r.get("stripe_charge_id") or "",
+                created_at_utc=r.get("created_at_utc") or "",
+                work_date=r.get("work_date") or "",
+                amount=r.get("amount") or "0.00",
+                fee=r.get("fee") or "0.00",
+                net=r.get("net") or r.get("net_amount") or "0.00",
+                expense_amount=r.get("expense_amount") or r.get("fee_amount") or "0.00",
+                currency=r.get("currency") or "",
+                description=r.get("description") or "",
+                txn_type=r.get("txn_type") or r.get("stripe_status") or "stripe_fee",
+                project=r.get("project") or DEFAULT_BALANCE_FEE_PROJECT,
+            )
+            for r in fee_src
+        ]
+        out.extend(
+            build_balance_fee_review_rows(
+                fees,
+                expense_rows=_tenant_stripe_expense_rows(tid),
+            )
+        )
+    return out
+
+
+@work_bp.route("/import/stripe", methods=["GET", "POST"])
+@login_required
+@rate_limit("30 per minute")
+def stripe_import():
+    """Upload form; POST without analyze action also accepted as analyze alias."""
+    if request.method == "POST":
+        return stripe_import_analyze()
+    flask_session.pop("stripe_import_review", None)
+    flask_session.pop("stripe_import_kind", None)
+    return render_template(
+        "work/stripe_import.html",
+        review_rows=None,
+        parse_errors=None,
+        import_kind=None,
+        sessions=_tenant_sessions_for_import(current_user.tenant_id),
+    )
+
+
+@work_bp.route("/import/stripe/analyze", methods=["POST"])
+@login_required
+@rate_limit("20 per hour")
+def stripe_import_analyze():
+    payments_upload = request.files.get("payments_csv")
+    balance_upload = request.files.get("balance_csv")
+    legacy = request.files.get("csv_file")
+
+    try:
+        payments_data = _read_upload_csv(payments_upload)
+        balance_data = _read_upload_csv(balance_upload)
+        if payments_data is None and balance_data is None and legacy and legacy.filename:
+            legacy_data = _read_upload_csv(legacy)
+            kind = detect_stripe_csv_kind(legacy_data) if legacy_data else None
+            if kind == "unified_payments":
+                payments_data = legacy_data
+            elif kind == "balance_history":
+                balance_data = legacy_data
+            else:
+                flash(
+                    "Unrecognized CSV. Export unified payments or balance history from Stripe.",
+                    "error",
+                )
+                return redirect(url_for("work.stripe_import"))
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("work.stripe_import"))
+
+    if payments_data is None and balance_data is None:
+        flash("Choose at least one CSV (unified payments and/or balance history).", "error")
+        return redirect(url_for("work.stripe_import"))
+
+    sessions = _tenant_sessions_for_import(current_user.tenant_id)
+    review_rows: list = []
+    parse_errors: list[str] = []
+    kinds: list[str] = []
+
+    try:
+        if payments_data is not None:
+            kind = detect_stripe_csv_kind(payments_data)
+            if kind != "unified_payments":
+                flash(
+                    "The payments file does not look like a unified payments CSV.",
+                    "error",
+                )
+                return redirect(url_for("work.stripe_import"))
+            payments, errs = parse_unified_payments_csv(payments_data)
+            parse_errors.extend(errs)
+            if payments:
+                review_rows.extend(
+                    build_review_rows(
+                        payments,
+                        sessions=sessions,
+                        income_rows=_tenant_stripe_income_rows(current_user.tenant_id),
+                    )
+                )
+                kinds.append("unified_payments")
+            else:
+                parse_errors.append("Unified payments: no paid positive-amount rows found.")
+
+        if balance_data is not None:
+            kind = detect_stripe_csv_kind(balance_data)
+            if kind != "balance_history":
+                flash(
+                    "The balance history file does not look like a Stripe balance history CSV.",
+                    "error",
+                )
+                return redirect(url_for("work.stripe_import"))
+            fees, errs = parse_balance_history_csv(balance_data)
+            parse_errors.extend(errs)
+            if fees:
+                review_rows.extend(
+                    build_balance_fee_review_rows(
+                        fees,
+                        expense_rows=_tenant_stripe_expense_rows(current_user.tenant_id),
+                    )
+                )
+                kinds.append("balance_history")
+            else:
+                parse_errors.append(
+                    "Balance history: no stripe_fee rows found (charges are skipped here)."
+                )
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("work.stripe_import"))
+    except Exception:
+        logger.exception("Stripe CSV parse failed")
+        flash("Could not read that CSV. Try again with a Stripe export.", "error")
+        return redirect(url_for("work.stripe_import"))
+
+    if not review_rows:
+        flash("Nothing to import from the uploaded file(s).", "warning")
+        return redirect(url_for("work.stripe_import"))
+
+    if len(kinds) == 2:
+        import_kind = "combined"
+    elif kinds:
+        import_kind = kinds[0]
+    else:
+        import_kind = None
+
+    flask_session["stripe_import_review"] = review_rows
+    flask_session["stripe_import_kind"] = import_kind
+
+    return render_template(
+        "work/stripe_import.html",
+        review_rows=review_rows,
+        parse_errors=parse_errors,
+        import_kind=import_kind,
+        sessions=sessions,
+    )
+
+
+@work_bp.route("/import/stripe/apply", methods=["POST"])
+@login_required
+@rate_limit("20 per hour")
+def stripe_import_apply():
+    review_rows = flask_session.get("stripe_import_review") or []
+    if not review_rows:
+        flash("Nothing to apply. Upload and analyze a CSV first.", "error")
+        return redirect(url_for("work.stripe_import"))
+
+    selected = request.form.getlist("row_index")
+    if not selected:
+        flash("Select at least one row to apply.", "error")
+        return render_template(
+            "work/stripe_import.html",
+            review_rows=review_rows,
+            parse_errors=None,
+            import_kind=flask_session.get("stripe_import_kind"),
+            sessions=_tenant_sessions_for_import(current_user.tenant_id),
+        )
+
+    applied = 0
+    skipped_matched = 0
+    errors: list[str] = []
+    tid = current_user.tenant_id
+    uid = current_user.id
+    created_sessions: dict[tuple[str, str], int] = {}
+
+    for raw_idx in selected:
+        try:
+            idx = int(raw_idx)
+        except (TypeError, ValueError):
+            continue
+        if idx < 0 or idx >= len(review_rows):
+            continue
+        row = review_rows[idx]
+        if row.get("status") == "matched" and request.form.get(f"force_{idx}") != "1":
+            skipped_matched += 1
+            continue
+
+        session_choice = (request.form.get(f"session_id_{idx}") or "").strip()
+        create_session = session_choice == "__create__" or not session_choice
+        session_id = None
+        if not create_session:
+            try:
+                session_id = int(session_choice)
+            except ValueError:
+                errors.append(f"{row.get('stripe_charge_id')}: invalid session.")
+                continue
+        else:
+            work_date = (row.get("work_date") or "").strip()
+            project_norm = (row.get("project_norm") or "").strip()
+            group_key = (work_date, project_norm)
+            if group_key in created_sessions:
+                session_id = created_sessions[group_key]
+                create_session = False
+            else:
+                create_session = True
+                session_id = None
+
+        if row.get("row_kind") == "balance_fee":
+            ok, msg, used_session_id = _apply_stripe_balance_fee_row(
+                tid, uid, row, session_id, create_session
+            )
+        else:
+            ok, msg, used_session_id = _apply_stripe_payment_row(
+                tid, uid, row, session_id, create_session
+            )
+        if ok:
+            applied += 1
+            if used_session_id and create_session:
+                work_date = (row.get("work_date") or "").strip()
+                project_norm = (row.get("project_norm") or "").strip()
+                created_sessions[(work_date, project_norm)] = int(used_session_id)
+        else:
+            errors.append(msg)
+
+    log_security_event(
+        "stripe_income_import_applied",
+        current_user.id,
+        {
+            "kind": flask_session.get("stripe_import_kind"),
+            "applied": applied,
+            "skipped_matched": skipped_matched,
+            "error_count": len(errors),
+        },
+    )
+
+    refreshed = _refresh_stripe_review(review_rows, tid)
+    flask_session["stripe_import_review"] = refreshed
+    sessions = _tenant_sessions_for_import(tid)
+
+    if applied:
+        flash(f"Applied {applied} row(s).", "success")
+    if skipped_matched:
+        flash(f"Skipped {skipped_matched} already-matched row(s).", "info")
+    for err in errors[:8]:
+        flash(err, "error")
+    if len(errors) > 8:
+        flash(f"…and {len(errors) - 8} more error(s).", "error")
+
+    return render_template(
+        "work/stripe_import.html",
+        review_rows=refreshed,
+        parse_errors=None,
+        import_kind=flask_session.get("stripe_import_kind"),
+        sessions=sessions,
+    )

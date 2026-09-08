@@ -12,6 +12,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   <h2 class="h5 mt-4">Sessions and hours</h2>
   <p><strong>How do I stop an open session?</strong><br>On the session page, set end time and/or use <strong>Hours (optional override)</strong>, then Stop. If you enter hours, the stored end time is computed from your start time and those hours.</p>
   <p><strong>Where do income and expenses go?</strong><br>Add <strong>income lines</strong> and <strong>expense lines</strong> on the session detail page. The session totals are the sums of those lines; you do not type totals directly on the start/edit session forms.</p>
+  <p><strong>Can I import Stripe payments?</strong><br>Yes. Use <strong>Import Stripe</strong> with a unified payments CSV (gross income + processing fee expenses) or a balance history CSV (Stripe billing/usage <code>stripe_fee</code> rows as expenses; charge rows there are skipped). Files are analyzed in memory and not kept on the server.</p>
 
   <h2 class="h5 mt-4">Reports</h2>
   <p><strong>What is the difference between Generic and EI-oriented?</strong><br>Both use the same underlying sessions. Generic shows full totals including expenses and net. EI-oriented focuses on hours and gross revenue and adds a Sunday-based <strong>weekly summary</strong> table.</p>
