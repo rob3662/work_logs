@@ -12,6 +12,9 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <meta name="description" content="{% block description %}{{ app_name }}{% endblock %}">
     <link rel="canonical" href="{{ canonical_url }}">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <script>
     (function () {
         try {
@@ -31,34 +34,35 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <link href="{{ url_for('static', filename='css/styles.css') }}?v={{ assets_version }}" rel="stylesheet">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+{% set ep = request.endpoint or '' %}
+<nav class="navbar navbar-expand-md navbar-dark app-navbar mb-4">
     <div class="container">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">{{ app_name }}</a>
+        <a class="navbar-brand" href="{% if current_user.is_authenticated %}{{ url_for('main.dashboard') }}{% else %}{{ url_for('main.index') }}{% endif %}">{{ app_name }}</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain"
                 aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navMain">
-            <ul class="navbar-nav ms-auto align-items-lg-center">
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
                 {% if current_user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('work.sessions_list') }}">Work log</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('work.stripe_import') }}">Import Stripe</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('work.reports') }}">Reports</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'main.dashboard' %} active{% endif %}"{% if ep == 'main.dashboard' %} aria-current="page"{% endif %} href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep and ep.startswith('work.session') %} active{% endif %}"{% if ep and ep.startswith('work.session') %} aria-current="page"{% endif %} href="{{ url_for('work.sessions_list') }}">Work log</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep and 'stripe' in ep %} active{% endif %}"{% if ep and 'stripe' in ep %} aria-current="page"{% endif %} href="{{ url_for('work.stripe_import') }}">Import Stripe</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep and ep.startswith('work.reports') %} active{% endif %}"{% if ep and ep.startswith('work.reports') %} aria-current="page"{% endif %} href="{{ url_for('work.reports') }}">Reports</a></li>
                 {% if current_user.is_admin %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('work.team_invites') }}">Team</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep and ep.startswith('work.team') %} active{% endif %}"{% if ep and ep.startswith('work.team') %} aria-current="page"{% endif %} href="{{ url_for('work.team_invites') }}">Team</a></li>
                 {% endif %}
                 {% if current_user.is_site_admin %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">Admin</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep and ep.startswith('admin.') %} active{% endif %}"{% if ep and ep.startswith('admin.') %} aria-current="page"{% endif %} href="{{ url_for('admin.admin_dashboard') }}">Admin</a></li>
                 {% endif %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a></li>
                 {% else %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.about') }}">About</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.how_it_works') }}">How it works</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.faq') }}">FAQ</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">Register</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'main.about' %} active{% endif %}" href="{{ url_for('main.about') }}">About</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'main.how_it_works' %} active{% endif %}" href="{{ url_for('main.how_it_works') }}">How it works</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'main.faq' %} active{% endif %}" href="{{ url_for('main.faq') }}">FAQ</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'main.contact' %} active{% endif %}" href="{{ url_for('main.contact') }}">Contact</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'auth.login' %} active{% endif %}" href="{{ url_for('auth.login') }}">Login</a></li>
+                <li class="nav-item"><a class="nav-link{% if ep == 'auth.register' %} active{% endif %}" href="{{ url_for('auth.register') }}">Register</a></li>
                 {% endif %}
                 <li class="nav-item ms-lg-2">
                     <button type="button" class="btn btn-outline-light btn-sm" onclick="toggleTheme()" aria-label="Toggle color theme">Theme</button>

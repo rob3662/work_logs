@@ -6,15 +6,35 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% extends "base.html" %}
 {% block title %}Work sessions — {{ app_name }}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 page-header-mobile">
   <h1 class="mb-0">Work sessions</h1>
-  <div class="d-flex flex-wrap gap-2">
+  <div class="page-actions">
     <a class="btn btn-outline-primary" href="{{ url_for('work.stripe_import') }}">Import Stripe</a>
     <a class="btn btn-primary" href="{{ url_for('work.session_new') }}">Start session</a>
   </div>
 </div>
 {% if sessions %}
-<div class="table-responsive">
+<div class="mobile-card-only mb-3">
+  <div class="session-card-list">
+    {% for s in sessions %}
+    <a class="session-card" href="{{ url_for('work.session_detail', session_id=s.id) }}">
+      <div class="session-card-title">{{ s.project }}</div>
+      <div class="session-card-meta">
+        {{ s.work_date }}
+        {% if s.start_time %} · {{ (s.start_time|string)[:5] }}{% endif %}
+        {% if s.end_time %}–{{ (s.end_time|string)[:5] }}{% else %} · <span class="badge text-bg-warning">Open</span>{% endif %}
+        {% if s.started_by_username %} · {{ s.started_by_username }}{% endif %}
+      </div>
+      <div class="session-card-stats">
+        <span><strong>Hours</strong> {% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</span>
+        <span><strong>Income</strong> {% if s.income is not none %}{{ s.income }}{% else %}—{% endif %}</span>
+        <span><strong>Expenses</strong> {% if s.expenses is not none %}{{ s.expenses }}{% else %}—{% endif %}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+<div class="table-responsive desktop-table-only">
   <table class="table table-striped align-middle">
     <thead>
       <tr>
@@ -32,14 +52,14 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <tbody>
       {% for s in sessions %}
       <tr>
-        <td>{{ s.work_date }}</td>
+        <td class="text-nowrap">{{ s.work_date }}</td>
         <td>{{ s.project }}</td>
         <td>{% if s.started_by_username %}{{ s.started_by_username }}{% else %}—{% endif %}</td>
         <td>{% if s.start_time %}{{ (s.start_time|string)[:5] }}{% endif %}</td>
         <td>{% if s.end_time %}{{ (s.end_time|string)[:5] }}{% else %}<span class="badge text-bg-warning">Open</span>{% endif %}</td>
-        <td>{% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</td>
-        <td>{% if s.income is not none %}{{ s.income }}{% else %}—{% endif %}</td>
-        <td>{% if s.expenses is not none %}{{ s.expenses }}{% else %}—{% endif %}</td>
+        <td class="numeric">{% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</td>
+        <td class="numeric">{% if s.income is not none %}{{ s.income }}{% else %}—{% endif %}</td>
+        <td class="numeric">{% if s.expenses is not none %}{{ s.expenses }}{% else %}—{% endif %}</td>
         <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('work.session_detail', session_id=s.id) }}">View</a></td>
       </tr>
       {% endfor %}

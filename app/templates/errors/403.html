@@ -5,4 +5,10 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}Forbidden — {{ app_name }}{% endblock %}
-{% block content %}<h1>403</h1><p>Access denied.</p>{% endblock %}
+{% block content %}
+<div class="col-lg-8 py-4">
+  <h1 class="mb-2">Access denied</h1>
+  <p class="text-muted mb-4">You do not have permission to view this page.</p>
+  <a class="btn btn-primary" href="{{ url_for('main.index') }}">Go home</a>
+</div>
+{% endblock %}

@@ -6,11 +6,12 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 
 /* Custom CSS (template) */
 
-/* Theme Variables */
+/* Theme Variables — single blue family (navbar + buttons stay in sync) */
 :root,
 [data-theme="light"] {
-    --primary-color: #6c5ce7;
-    --secondary-color: #a29bfe;
+    --primary-color: #1d4ed8;
+    --secondary-color: #3b82f6;
+    --primary-rgb: 29, 78, 216;
     --success-color: #00b894;
     --warning-color: #fdcb6e;
     --danger-color: #e17055;
@@ -22,21 +23,47 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     --text-primary: #212529;
     --text-secondary: #6c757d;
     --border-color: #dee2e6;
+    --bs-primary: var(--primary-color);
+    --bs-primary-rgb: var(--primary-rgb);
+    --bs-link-color: var(--primary-color);
+    --bs-link-hover-color: #1e40af;
 }
 
 [data-theme="dark"] {
-    --bg-primary: #212529;
-    --bg-secondary: #2b3035;
+    --bg-primary: #1a1d21;
+    --bg-secondary: #24282d;
     --text-primary: #f8f9fa;
     --text-secondary: #adb5bd;
-    --border-color: #495057;
+    --border-color: #3d444b;
+    --bs-primary: var(--primary-color);
+    --bs-primary-rgb: var(--primary-rgb);
     color-scheme: dark;
 }
 
 /* Global Styles */
+html {
+    height: 100%;
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
     line-height: 1.6;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+main.container {
+    flex: 1 0 auto;
+}
+
+.numeric,
+.table td.numeric,
+.table th.numeric {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
 }
 
 /* Ensure page surfaces follow theme even if Bootstrap vars lag */
@@ -52,9 +79,46 @@ body {
 }
 
 /* Navigation */
+.navbar.app-navbar {
+    background-color: var(--primary-color) !important;
+}
+
 .navbar-brand {
     font-weight: 700;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+}
+
+.navbar .nav-link {
+    font-weight: 500;
+}
+
+.navbar .nav-link.active {
+    color: #fff !important;
+    opacity: 1;
+    position: relative;
+}
+
+.navbar .nav-link.active::after {
+    content: "";
+    position: absolute;
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0.2rem;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1px;
+}
+
+@media (max-width: 767.98px) {
+    .navbar .nav-link.active::after {
+        display: none;
+    }
+
+    .navbar .nav-link.active {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 0.375rem;
+    }
 }
 
 /* Cards */
@@ -102,7 +166,7 @@ body {
 
 /* Tables */
 .table-hover tbody tr:hover {
-    background-color: rgba(108, 92, 231, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.08);
 }
 
 /* Badges */
@@ -212,22 +276,22 @@ body {
 
 /* Public landing hero (index) */
 .landing-hero {
-    border: 1px solid rgba(108, 92, 231, 0.18);
+    border: 1px solid rgba(var(--primary-rgb), 0.16);
     background: linear-gradient(
         145deg,
-        rgba(108, 92, 231, 0.07) 0%,
+        rgba(var(--primary-rgb), 0.08) 0%,
         rgba(248, 249, 250, 0.95) 45%,
         #fff 100%
     );
 }
 
 [data-theme="dark"] .landing-hero {
-    border-color: rgba(162, 155, 254, 0.28);
+    border-color: rgba(59, 130, 246, 0.35);
     background: linear-gradient(
         145deg,
-        rgba(108, 92, 231, 0.22) 0%,
-        rgba(45, 52, 54, 0.92) 55%,
-        var(--bs-body-bg, #212529) 100%
+        rgba(var(--primary-rgb), 0.28) 0%,
+        rgba(36, 40, 45, 0.95) 55%,
+        var(--bg-primary) 100%
     );
 }
 
@@ -288,18 +352,161 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .stats-card h3 {
         font-size: 2rem;
     }
-    
+
     .btn-lg {
-        padding: 0.75rem 1.5rem;
+        padding: 0.75rem 1.25rem;
         font-size: 1rem;
     }
-    
+
     .display-4 {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
+    }
+
+    .display-5 {
+        font-size: 2rem;
+    }
+
+    main.container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* Full-width touch-friendly actions */
+    .page-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-actions > .btn,
+    .page-actions > form,
+    .page-actions > form > .btn {
+        width: 100%;
+    }
+
+    .page-actions > .btn,
+    .page-actions > form > .btn {
+        min-height: 2.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Stack page title + actions */
+    .page-header-mobile {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    /* Larger tap targets in collapsed nav */
+    .navbar .navbar-nav .nav-link {
+        padding: 0.85rem 0.75rem;
+        min-height: 2.75rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .navbar .navbar-toggler {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .navbar .btn {
+        min-height: 2.75rem;
+        width: 100%;
+        margin-top: 0.35rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Forms: taller controls on touch */
+    .form-control,
+    .form-select {
+        min-height: 2.75rem;
+        font-size: 1rem;
+    }
+
+    .btn:not(.btn-sm) {
+        min-height: 2.75rem;
+    }
+
+    .btn-sm {
+        min-height: 2.5rem;
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    /* Definition lists: stack labels */
+    dl.row > dt {
+        margin-bottom: 0.15rem;
+    }
+
+    dl.row > dd {
+        margin-bottom: 0.85rem;
+    }
+
+    /* Footer denser on phones */
+    footer .row > [class*="col-"] {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Horizontal scroll for remaining wide tables */
+    .table-responsive {
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+        padding-bottom: 0.25rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-responsive > .table {
+        min-width: 36rem;
+    }
+
+    .table-responsive.table-responsive-flush > .table {
+        min-width: 0;
+    }
+}
+
+/* Tablet: two-column session cards, fuller width */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    main.container {
+        max-width: 100%;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .page-actions {
+        max-width: 100%;
+    }
+
+    .session-card-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .desktop-table-only {
+        display: none !important;
+    }
+
+    .mobile-card-only {
+        display: block !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .mobile-card-only {
+        display: none !important;
+    }
+
+    .desktop-table-only {
+        display: block !important;
     }
 }
 
@@ -507,7 +714,6 @@ body {
 [data-theme="dark"] .modal-body,
 [data-theme="dark"] .modal-footer,
 [data-theme="dark"] .modal-title,
-[data-theme="dark"] .nav-link,
 [data-theme="dark"] .navbar .navbar-nav .nav-link,
 [data-theme="dark"] .table thead th,
 [data-theme="dark"] .list-inline,
@@ -550,11 +756,146 @@ body {
 }
 
 /* Content area links: white in dark mode, subtle highlight on hover */
-[data-theme="dark"] main a:not(.btn) {
+[data-theme="dark"] main a:not(.btn):not(.nav-link) {
     color: #ffffff !important;
 }
-[data-theme="dark"] main a:not(.btn):hover {
+[data-theme="dark"] main a:not(.btn):not(.nav-link):hover {
     color: var(--info-color) !important;
+}
+
+/* Report / content tabs in dark mode */
+[data-theme="dark"] .nav-tabs {
+    border-bottom-color: var(--border-color);
+}
+[data-theme="dark"] .nav-tabs .nav-link {
+    color: var(--text-secondary) !important;
+    border-color: transparent;
+}
+[data-theme="dark"] .nav-tabs .nav-link:hover {
+    color: #fff !important;
+    border-color: transparent;
+    isolation: isolate;
+}
+[data-theme="dark"] .nav-tabs .nav-link.active {
+    color: #fff !important;
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color) var(--border-color) var(--bg-secondary);
+}
+
+/* Soften card hover lift on dense app pages */
+.card:hover {
+    box-shadow: 0 0.25rem 0.6rem rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .card {
+    background-color: var(--bg-secondary);
+    box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 0.35rem 0.75rem rgba(0, 0, 0, 0.45);
+}
+
+/* Page section rhythm */
+.page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.stat-value {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.02em;
+}
+
+/* Session cards: hidden on desktop, shown below lg via media queries */
+.mobile-card-only {
+    display: none;
+}
+
+.desktop-table-only {
+    display: block;
+}
+
+.session-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.session-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.9rem 1rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.session-card:hover,
+.session-card:focus-visible {
+    border-color: rgba(var(--primary-rgb), 0.55);
+    color: inherit;
+    text-decoration: none;
+}
+
+[data-theme="dark"] .session-card {
+    background-color: var(--bg-secondary);
+}
+
+.session-card-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.session-card-meta {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.35rem;
+}
+
+.session-card-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.session-card-stats span strong {
+    font-weight: 600;
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .session-card-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.85rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .desktop-table-only {
+        display: none !important;
+    }
+
+    .mobile-card-only {
+        display: block !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .mobile-card-only {
+        display: none !important;
+    }
+
+    .desktop-table-only {
+        display: block !important;
+    }
 }
 
 /* Admin dashboard (and any outline buttons): better contrast in dark mode */

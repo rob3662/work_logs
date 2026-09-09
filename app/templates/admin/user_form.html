@@ -8,7 +8,9 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h1 class="mb-0">{% if mode == 'new' %}Add user{% else %}Edit user #{{ user.id }}{% endif %}</h1>
-  <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_users') }}">Back to users</a>
+  <div class="page-actions">
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_users') }}">Back to users</a>
+  </div>
 </div>
 
 <form method="post" class="col-lg-8">

@@ -5,4 +5,10 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 === LICENSE HEADER END === -->
 {% extends "base.html" %}
 {% block title %}Server error — {{ app_name }}{% endblock %}
-{% block content %}<h1>500</h1><p>Something went wrong.</p>{% endblock %}
+{% block content %}
+<div class="col-lg-8 py-4">
+  <h1 class="mb-2">Something went wrong</h1>
+  <p class="text-muted mb-4">Please try again in a moment. If it keeps happening, contact support.</p>
+  <a class="btn btn-primary" href="{{ url_for('main.index') }}">Go home</a>
+</div>
+{% endblock %}

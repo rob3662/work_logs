@@ -8,7 +8,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h1 class="mb-0">Users</h1>
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="page-actions">
     <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_dashboard') }}">Admin home</a>
     <a class="btn btn-primary" href="{{ url_for('admin.admin_user_new') }}">Add user</a>
   </div>
@@ -28,30 +28,30 @@ Unauthorized use, modification, or distribution is strictly prohibited.
   <table class="table table-striped table-sm align-middle">
     <thead>
       <tr>
-        <th>ID</th>
+        <th class="d-none d-lg-table-cell">ID</th>
         <th>Username</th>
         <th>Email</th>
-        <th>Tenant</th>
+        <th class="d-none d-md-table-cell">Tenant</th>
         <th>Roles</th>
-        <th>Verified</th>
-        <th>Last login</th>
+        <th class="d-none d-lg-table-cell">Verified</th>
+        <th class="d-none d-md-table-cell">Last login</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
       {% for u in users %}
       <tr>
-        <td>{{ u.id }}</td>
+        <td class="d-none d-lg-table-cell numeric">{{ u.id }}</td>
         <td>{{ u.username }}</td>
         <td class="text-break">{{ u.email }}</td>
-        <td>{{ u.tenant_name or '—' }} <span class="text-muted">(#{{ u.tenant_id }})</span></td>
+        <td class="d-none d-md-table-cell">{{ u.tenant_name or '—' }} <span class="text-muted">(#{{ u.tenant_id }})</span></td>
         <td>
           {% if u.is_site_admin %}<span class="badge text-bg-danger">Site admin</span>{% endif %}
           {% if u.is_admin %}<span class="badge text-bg-primary">Tenant admin</span>{% endif %}
           {% if not u.is_admin and not u.is_site_admin %}<span class="text-muted">Member</span>{% endif %}
         </td>
-        <td>{% if u.email_verified %}Yes{% else %}No{% endif %}</td>
-        <td class="small">{% if u.last_login %}{{ u.last_login }}{% else %}—{% endif %}</td>
+        <td class="d-none d-lg-table-cell">{% if u.email_verified %}Yes{% else %}No{% endif %}</td>
+        <td class="small d-none d-md-table-cell">{% if u.last_login %}{{ u.last_login }}{% else %}—{% endif %}</td>
         <td class="text-nowrap">
           <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.admin_user_edit', user_id=u.id) }}">Edit</a>
           {% if u.id != current_user.id %}

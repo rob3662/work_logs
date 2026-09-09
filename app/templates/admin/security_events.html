@@ -8,7 +8,9 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h1 class="mb-0">Security events</h1>
-  <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_dashboard') }}">Admin home</a>
+  <div class="page-actions">
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_dashboard') }}">Admin home</a>
+  </div>
 </div>
 <p class="text-muted small">
   Showing up to 200 most recent

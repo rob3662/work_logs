@@ -8,24 +8,25 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-8 col-lg-6">
-    <h2 class="mb-3">Create account</h2>
+    <h1 class="h2 mb-2">Create account</h1>
+    <p class="text-muted mb-4">Start logging sessions, income, and expenses in {{ app_name }}.</p>
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="mb-3">
         <label class="form-label" for="username">Username</label>
-        <input class="form-control" type="text" id="username" name="username" minlength="3" required>
+        <input class="form-control" type="text" id="username" name="username" minlength="3" required autocomplete="username">
       </div>
       <div class="mb-3">
         <label class="form-label" for="email">Email</label>
-        <input class="form-control" type="email" id="email" name="email" required>
+        <input class="form-control" type="email" id="email" name="email" required autocomplete="email">
       </div>
       <div class="mb-3">
         <label class="form-label" for="password">Password</label>
-        <input class="form-control" type="password" id="password" name="password" minlength="8" required>
+        <input class="form-control" type="password" id="password" name="password" minlength="8" required autocomplete="new-password">
       </div>
       <div class="mb-3">
         <label class="form-label" for="confirm_password">Confirm password</label>
-        <input class="form-control" type="password" id="confirm_password" name="confirm_password" minlength="8" required>
+        <input class="form-control" type="password" id="confirm_password" name="confirm_password" minlength="8" required autocomplete="new-password">
       </div>
       {% if RECAPTCHA_SITE_KEY %}
       <div class="mb-3">
@@ -34,6 +35,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
       {% endif %}
       <button type="submit" class="btn btn-primary">Register</button>
     </form>
+    <p class="small text-muted mt-3 mb-0">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a>.</p>
   </div>
 </div>
 {% if RECAPTCHA_SITE_KEY %}

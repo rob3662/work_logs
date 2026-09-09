@@ -8,7 +8,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <h1 class="mb-0">Tenants</h1>
-  <div class="d-flex gap-2 flex-wrap">
+  <div class="page-actions">
     <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_dashboard') }}">Admin home</a>
     <a class="btn btn-primary" href="{{ url_for('admin.admin_tenant_new') }}">Add tenant</a>
   </div>
@@ -68,7 +68,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
           <span class="badge text-bg-warning">Orphan</span>
           {% endif %}
         </td>
-        <td>{{ t.user_count }}</td>
+        <td class="numeric">{{ t.user_count }}</td>
         <td>{% if t.owner_username %}{{ t.owner_username }}{% else %}—{% endif %}</td>
         <td class="small">{% if t.created_at %}{{ t.created_at }}{% else %}—{% endif %}</td>
         <td>

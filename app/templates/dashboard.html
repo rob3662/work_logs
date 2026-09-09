@@ -6,31 +6,69 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% extends "base.html" %}
 {% block title %}Dashboard — {{ app_name }}{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
-<p class="text-muted">Signed in as <strong>{{ current_user.username }}</strong> ({{ current_user.email }}).</p>
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <a class="btn btn-primary" href="{{ url_for('work.session_new') }}">Start work session</a>
-  <a class="btn btn-outline-primary" href="{{ url_for('work.sessions_list') }}">View work log</a>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4 page-header-mobile">
+  <div>
+    <h1 class="mb-1">Dashboard</h1>
+    <p class="text-muted mb-0">Signed in as <strong>{{ current_user.username }}</strong>
+      <span class="d-none d-sm-inline">({{ current_user.email }})</span>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="{{ url_for('work.session_new') }}">Start work session</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('work.sessions_list') }}">Work log</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('work.reports') }}">Reports</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('work.stripe_import') }}">Import Stripe</a>
+  </div>
 </div>
-<h2 class="h5">Recent sessions</h2>
+
+<h2 class="h5 mb-3">Recent sessions</h2>
 {% if recent_sessions %}
-<div class="table-responsive">
-  <table class="table table-sm table-striped">
-    <thead><tr><th>Date</th><th>Project</th><th>Started by</th><th>Hours</th><th></th></tr></thead>
+<div class="mobile-card-only mb-3">
+  <div class="session-card-list">
+    {% for s in recent_sessions %}
+    <a class="session-card" href="{{ url_for('work.session_detail', session_id=s.id) }}">
+      <div class="session-card-title">{{ s.project }}</div>
+      <div class="session-card-meta">
+        {{ s.work_date }}
+        {% if s.started_by_username %} · {{ s.started_by_username }}{% endif %}
+      </div>
+      <div class="session-card-stats">
+        <span><strong>Hours</strong> {% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+<div class="table-responsive desktop-table-only">
+  <table class="table table-sm table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Project</th>
+        <th>Started by</th>
+        <th class="text-end">Hours</th>
+        <th></th>
+      </tr>
+    </thead>
     <tbody>
       {% for s in recent_sessions %}
       <tr>
-        <td>{{ s.work_date }}</td>
+        <td class="text-nowrap">{{ s.work_date }}</td>
         <td>{{ s.project }}</td>
         <td>{% if s.started_by_username %}{{ s.started_by_username }}{% else %}—{% endif %}</td>
-        <td>{% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</td>
-        <td><a href="{{ url_for('work.session_detail', session_id=s.id) }}">Open</a></td>
+        <td class="text-end numeric">{% if s.hours_worked is not none %}{{ s.hours_worked }}{% else %}—{% endif %}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('work.session_detail', session_id=s.id) }}">View</a>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+<p class="mb-0"><a href="{{ url_for('work.sessions_list') }}">See all sessions</a></p>
 {% else %}
-<p class="text-muted">No sessions yet.</p>
+<p class="text-muted mb-0">No sessions yet.
+  <a href="{{ url_for('work.session_new') }}">Start your first session</a>.
+</p>
 {% endif %}
 {% endblock %}

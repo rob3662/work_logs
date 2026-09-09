@@ -6,17 +6,19 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 {% extends "base.html" %}
 {% block title %}Admin — {{ app_name }}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <h1 class="mb-0">Site admin</h1>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+  <div>
+    <h1 class="mb-1">Site admin</h1>
+    <p class="text-muted mb-0">Manage tenants and users across the whole application.</p>
+  </div>
 </div>
-<p class="text-muted">Manage tenants and users across the whole application.</p>
 
 <div class="row g-3 mb-4">
   <div class="col-md-4">
     <div class="card h-100">
       <div class="card-body">
         <h2 class="h5">Users</h2>
-        <p class="display-6 mb-2">{{ stats.users }}</p>
+        <p class="display-6 mb-2 stat-value">{{ stats.users }}</p>
         <a class="btn btn-primary btn-sm" href="{{ url_for('admin.admin_users') }}">Manage users</a>
       </div>
     </div>
@@ -25,7 +27,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <div class="card h-100">
       <div class="card-body">
         <h2 class="h5">Tenants</h2>
-        <p class="display-6 mb-2">{{ stats.tenants }}</p>
+        <p class="display-6 mb-2 stat-value">{{ stats.tenants }}</p>
         {% if stats.orphan_tenants %}
         <p class="small text-warning mb-2">{{ stats.orphan_tenants }} with no users</p>
         {% endif %}
@@ -37,7 +39,7 @@ Unauthorized use, modification, or distribution is strictly prohibited.
     <div class="card h-100">
       <div class="card-body">
         <h2 class="h5">Site admins</h2>
-        <p class="display-6 mb-2">{{ stats.site_admins }}</p>
+        <p class="display-6 mb-2 stat-value">{{ stats.site_admins }}</p>
         <p class="small text-muted mb-0">Global access to this Admin area.</p>
       </div>
     </div>
