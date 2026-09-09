@@ -1,0 +1,84 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}Admin tenants — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="mb-0">Tenants</h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_dashboard') }}">Admin home</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.admin_tenant_new') }}">Add tenant</a>
+  </div>
+</div>
+
+{% if orphan_count %}
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <div>
+    <strong>{{ orphan_count }} orphan tenant(s)</strong> have no users.
+    {% if not orphans_only %}
+    <a href="{{ url_for('admin.admin_tenants', orphans='1') }}">Show orphans only</a>
+    {% else %}
+    <a href="{{ url_for('admin.admin_tenants') }}">Show all</a>
+    {% endif %}
+  </div>
+  <form method="post" action="{{ url_for('admin.admin_tenants_cleanup_orphans') }}" class="d-flex flex-wrap gap-2 align-items-center"
+        onsubmit="return confirm('Delete all orphan tenants (except your current tenant)?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <input class="form-control form-control-sm" name="confirm" placeholder='Type: delete orphans' required style="min-width: 12rem;">
+    <button type="submit" class="btn btn-sm btn-outline-danger">Delete orphans</button>
+  </form>
+</div>
+{% endif %}
+
+<form method="get" class="row g-2 mb-3 align-items-end">
+  <div class="col-md-6">
+    <label class="form-label" for="q">Search</label>
+    <input class="form-control" type="search" id="q" name="q" value="{{ q or '' }}" placeholder="Tenant name">
+  </div>
+  {% if orphans_only %}
+  <input type="hidden" name="orphans" value="1">
+  {% endif %}
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-primary">Search</button>
+  </div>
+</form>
+
+<div class="table-responsive">
+  <table class="table table-striped table-sm align-middle">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Users</th>
+        <th>Owner</th>
+        <th>Created</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tenants %}
+      <tr>
+        <td>{{ t.id }}</td>
+        <td>
+          {{ t.name }}
+          {% if t.user_count == 0 %}
+          <span class="badge text-bg-warning">Orphan</span>
+          {% endif %}
+        </td>
+        <td>{{ t.user_count }}</td>
+        <td>{% if t.owner_username %}{{ t.owner_username }}{% else %}—{% endif %}</td>
+        <td class="small">{% if t.created_at %}{{ t.created_at }}{% else %}—{% endif %}</td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.admin_tenant_edit', tenant_id=t.id) }}">Edit</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-muted">No tenants found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

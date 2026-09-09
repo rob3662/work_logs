@@ -1,0 +1,105 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}{% if mode == 'new' %}Add user{% else %}Edit user{% endif %} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="mb-0">{% if mode == 'new' %}Add user{% else %}Edit user #{{ user.id }}{% endif %}</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_users') }}">Back to users</a>
+</div>
+
+<form method="post" class="col-lg-8">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="mb-3">
+    <label class="form-label" for="username">Username</label>
+    <input class="form-control" id="username" name="username" required maxlength="80"
+           value="{{ user.username if user else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="email">Email</label>
+    <input class="form-control" type="email" id="email" name="email" required
+           value="{{ user.email if user else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label" for="password">Password{% if mode == 'edit' %} <span class="text-muted">(leave blank to keep)</span>{% endif %}</label>
+    <input class="form-control" type="password" id="password" name="password" autocomplete="new-password"
+           {% if mode == 'new' %}required{% endif %}>
+  </div>
+
+  {% if mode == 'new' %}
+  <fieldset class="mb-3">
+    <legend class="col-form-label">Tenant</legend>
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="tenant_mode" id="tenant_existing" value="existing" checked>
+      <label class="form-check-label" for="tenant_existing">Add to existing tenant</label>
+    </div>
+    <div class="ms-4 mb-2">
+      <select class="form-select" name="tenant_id" id="tenant_id">
+        {% for t in tenants %}
+        <option value="{{ t.id }}">{{ t.name }} (#{{ t.id }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="tenant_mode" id="tenant_new" value="new">
+      <label class="form-check-label" for="tenant_new">Create new tenant</label>
+    </div>
+    <div class="ms-4">
+      <input class="form-control" type="text" name="new_tenant_name" maxlength="200"
+             placeholder="Tenant / workspace name">
+    </div>
+  </fieldset>
+  {% else %}
+  <div class="mb-3">
+    <label class="form-label" for="tenant_id">Tenant</label>
+    <select class="form-select" name="tenant_id" id="tenant_id" required>
+      {% for t in tenants %}
+      <option value="{{ t.id }}" {% if user and user.tenant_id == t.id %}selected{% endif %}>
+        {{ t.name }} (#{{ t.id }})
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
+  <div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" name="is_admin" value="1" id="is_admin"
+           {% if user and user.is_admin %}checked{% elif mode == 'new' %}{% endif %}>
+    <label class="form-check-label" for="is_admin">Tenant admin (Team / elevated session edits)</label>
+  </div>
+  <div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" name="is_site_admin" value="1" id="is_site_admin"
+           {% if user and user.is_site_admin %}checked{% endif %}>
+    <label class="form-check-label" for="is_site_admin">Site admin (global Admin area)</label>
+  </div>
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="email_verified" value="1" id="email_verified"
+           {% if user and user.email_verified %}checked{% elif mode == 'new' %}checked{% endif %}>
+    <label class="form-check-label" for="email_verified">Email verified</label>
+  </div>
+
+  <button type="submit" class="btn btn-primary">{% if mode == 'new' %}Create user{% else %}Save changes{% endif %}</button>
+</form>
+
+{% if mode == 'edit' and user %}
+<div class="col-lg-8 mt-4">
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h6">Password reset email</h2>
+      <p class="small text-muted mb-2">
+        Sends the same reset link as “Forgot password” to <strong>{{ user.email }}</strong> (expires in 1 hour).
+        Prefer this over setting a password yourself.
+      </p>
+      <form method="post" action="{{ url_for('admin.admin_user_send_reset', user_id=user.id) }}"
+            onsubmit="return confirm('Send password reset email to {{ user.email }}?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-outline-primary btn-sm">Send password reset email</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

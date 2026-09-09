@@ -21,6 +21,9 @@ Unauthorized use, modification, or distribution is strictly prohibited.
 
   <h2 class="h5 mt-4">Account</h2>
   <p><strong>Who can delete a session?</strong><br>Only the <strong>tenant owner</strong> can delete a session (to avoid accidental loss of shared history). Editors can still add lines and stop sessions per your rules.</p>
+  <p><strong>What is the difference between Site admin and Team admin?</strong><br>
+    <strong>Site admin</strong> (<code>is_site_admin</code>) can open the global <strong>Admin</strong> area: manage all users and tenants, view security events, and send password resets.
+    <strong>Tenant admin</strong> (Team) can invite people to <em>their</em> workspace and has elevated edit rights on sessions in that tenant only. Self-registration makes you a tenant admin of your new workspace; it does not grant site admin.</p>
 
   <p class="mt-4"><a href="{{ url_for('main.how_it_works') }}">How it works</a> · <a href="{{ url_for('main.contact') }}">Contact</a></p>
 </div>

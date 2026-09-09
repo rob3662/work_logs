@@ -1,0 +1,66 @@
+<!-- === LICENSE HEADER START ===
+Copyright (c) 2026 Robert Brake
+This file is part of a proprietary software project.
+Unauthorized use, modification, or distribution is strictly prohibited.
+=== LICENSE HEADER END === -->
+{% extends "base.html" %}
+{% block title %}{% if mode == 'new' %}Add tenant{% else %}Edit tenant{% endif %} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="mb-0">{% if mode == 'new' %}Add tenant{% else %}Edit tenant #{{ tenant.id }}{% endif %}</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('admin.admin_tenants') }}">Back to tenants</a>
+</div>
+
+<form method="post" class="col-lg-8 mb-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <div class="mb-3">
+    <label class="form-label" for="name">Name</label>
+    <input class="form-control" id="name" name="name" required maxlength="200"
+           value="{{ tenant.name if tenant else '' }}">
+  </div>
+  {% if mode == 'edit' %}
+  <div class="mb-3">
+    <label class="form-label" for="owner_user_id">Owner</label>
+    <select class="form-select" id="owner_user_id" name="owner_user_id">
+      <option value="">— None —</option>
+      {% for u in users %}
+      <option value="{{ u.id }}" {% if tenant.owner_user_id == u.id %}selected{% endif %}>
+        {{ u.username }} ({{ u.email }}){% if u.is_admin %} · tenant admin{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    <div class="form-text">Owner must already be a user on this tenant.</div>
+  </div>
+  {% if users %}
+  <p class="small text-muted">Users on this tenant:
+    {% for u in users %}{{ u.username }}{% if not loop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% else %}
+  <p class="small text-muted">No users on this tenant yet. <a href="{{ url_for('admin.admin_user_new') }}">Add a user</a>.</p>
+  {% endif %}
+  {% endif %}
+  <button type="submit" class="btn btn-primary">{% if mode == 'new' %}Create tenant{% else %}Save changes{% endif %}</button>
+</form>
+
+{% if mode == 'edit' and tenant and tenant.id != current_user.tenant_id %}
+<div class="card border-danger col-lg-8">
+  <div class="card-body">
+    <h2 class="h5 text-danger">Delete tenant</h2>
+    <p class="small mb-2">
+      This permanently deletes the tenant and <strong>all users and work data</strong> in it (CASCADE).
+      Type the tenant name <strong>{{ tenant.name }}</strong> to confirm.
+    </p>
+    <form method="post" action="{{ url_for('admin.admin_tenant_delete', tenant_id=tenant.id) }}"
+          onsubmit="return confirm('Really delete this tenant and all of its data?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="mb-2">
+        <input class="form-control" name="confirm_name" required placeholder="Type tenant name exactly">
+      </div>
+      <button type="submit" class="btn btn-danger">Delete tenant</button>
+    </form>
+  </div>
+</div>
+{% elif mode == 'edit' %}
+<p class="text-muted small">You cannot delete the tenant you are signed into.</p>
+{% endif %}
+{% endblock %}
